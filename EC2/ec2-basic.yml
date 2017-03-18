@@ -38,7 +38,7 @@ Parameters:
   KeyName:
     Description: "Enter an existing EC2 KeyPair. Default is MyEC2Key"
     Type: "String"
-    Default: "MyKey-Virginia"
+    Default: "MyEC2Key"
 
 
 # Mappings allow us to map a key to a corresponding set of named values
