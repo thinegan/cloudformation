@@ -1,29 +1,28 @@
-# Setup EC2 level1 instance 
-# - Security Group
-# - Tag Name
-# - Basic Web Server
-# - Output
+# Setup EC2 level3 instance 
+# - Create New Volume
+# - Attach New Volume, Snapshot on Delete Policy & Name Tagging
+# - Allocate & Associate Elastic IP
 #
 # Note, this is a basic use of Cloudformation with disregard for Security Group Access
 # You should always update Security Group Access with your own IP Address to ensure your instances security.
 #
 # How to validate template
-# aws cloudformation validate-template --template-body file:////path//cloudformation//EC2//ec2-level1.yml
+# aws cloudformation validate-template --template-body file:////path//cloudformation//EC2//ec2-level2.yml
 #
 # How to Create/Update stack 
-# aws cloudformation create-stack --stack-name myec2level1 --template-body file:////path//cloudformation//EC2//ec2-level1.yml
-# aws cloudformation update-stack --stack-name myec2level1 --template-body file:////path//cloudformation//EC2//ec2-level1.yml
+# aws cloudformation create-stack --stack-name myec2level2 --template-body file:////path//cloudformation//EC2//ec2-level2.yml
+# aws cloudformation update-stack --stack-name myec2level2 --template-body file:////path//cloudformation//EC2//ec2-level2.yml
 #
 # How to Delete stack
-# aws cloudformation delete-stack --stack-name myec2level1
+# aws cloudformation delete-stack --stack-name myec2level2
 #
 # Example with parameter
 # aws cloudformation create-stack  --stack-name startmyinstance  
 #    --template-body file://home/ec2-user/templates/startmyinstance.json 
-#    --parameters  ParameterKey=KeyPairName,ParameterValue=MyKey ParameterKey=InstanceType,ParameterValue=t1.micro   
+#    --parameters  ParameterKey=KeyPairName,ParameterValue=MyKey ParameterKey=InstanceType,ParameterValue=t1.micro
 ---
 AWSTemplateFormatVersion: "2010-09-09"
-Description: "Example EC2 Set-up Level1"
+Description: "Example EC2 Set-up Level3"
 # Paramaters are referenced using the Ref property
 # e.g. Ref: "KeyName"
 #
@@ -73,7 +72,7 @@ Mappings:
       AMI: "ami-f0091d91"
 
 Resources:
-  Ec2Instance:
+  MyWebServer:
     Type: "AWS::EC2::Instance"
     Properties:
       KeyName:
@@ -82,8 +81,14 @@ Resources:
         - Ref: "webdmz"
       InstanceType:
         Ref: "InstanceType"
-
-      # Select the correct AMI to load (based on the region the stack is created)
+      BlockDeviceMappings:
+        # Root Mount Device
+        - DeviceName: "/dev/xvda"
+          Ebs:
+            # Increasing the volume size will actually cause to spin another
+            # ec2 instance and shut down the existing old volume
+            VolumeSize: "10" # 10GB
+            VolumeType: "gp2"
       ImageId:
         Fn::FindInMap:
           - "RegionMap"
@@ -100,6 +105,43 @@ Resources:
           service httpd start
           chkconfig httpd on
           echo "<html><h1>Hello Cloud Gurus!</h1></html>" > /var/www/html/index.html
+
+  # Create New Volume
+  NewVolume:
+    Type: "AWS::EC2::Volume"
+    Properties:
+      Size: '10'
+      VolumeType: "gp2"
+      Encrypted: 'false'
+      AvailabilityZone:
+        Fn::GetAtt:
+        - "MyWebServer"
+        - "AvailabilityZone"
+      Tags:
+      - Key: "Name"
+        Value: "MyWebServer"
+    DeletionPolicy: "Snapshot"
+
+  # Attach new volume to the existing EC2 instance
+  MountPoint:
+    Type: "AWS::EC2::VolumeAttachment"
+    Properties:
+      InstanceId:
+        Ref: "MyWebServer"
+      VolumeId:
+        Ref: "NewVolume"
+      Device: "/dev/xvdc"
+
+  # Allocate Elastic IP and Associate with MyWebServer instance
+  EIPAddress:
+    Type: "AWS::EC2::EIP"
+  EIPAssoc:
+    Type: "AWS::EC2::EIPAssociation"
+    Properties:
+      InstanceId:
+        Ref: "MyWebServer"
+      EIP:
+        Ref: "EIPAddress"
 
 # Building Security Group - WebDMZ
 # Note: SecurityGroupEgress cannot be specified without VpcId
@@ -139,18 +181,19 @@ Resources:
       Tags:
         - Key: "Name"
           Value: "webdmz"
-
 # Output Server dns name and publicIP
 Outputs:
-  PublicDNSName:
+  MyWebServerDNSName:
     Description: "Public DNS name of the new EC2 instance"
     Value:
       Fn::GetAtt:
-      - "Ec2Instance"
+      - "MyWebServer"
       - "PublicDnsName"
-  PublicIPAddress:
+  MyWebServerIPAddress:
     Description: "Public IP address of the new EC2 instance"
     Value:
       Fn::GetAtt:
-      - "Ec2Instance"
+      - "MyWebServer"
       - "PublicIp"
+
+
