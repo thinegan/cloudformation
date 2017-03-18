@@ -1,0 +1,196 @@
+# Setup Basic RDS
+# - Create a free tier, non-multiAZ mysql DB
+#
+# Note, this is a basic use of Cloudformation with disregard for Security Group Access
+# You should always update Security Group Access with your own IP Address to ensure your instances security.
+#
+# How to validate template
+# aws cloudformation validate-template --template-body file:////path//cloudformation//RDS//rds-basic.yml
+#
+# How to Create/Update stack 
+# aws cloudformation create-stack --stack-name myRDS --template-body file:////path//cloudformation//RDS//rds-basic.yml
+# aws cloudformation update-stack --stack-name myRDS --template-body file:////path//cloudformation//RDS//rds-basic.yml
+#
+# How to Delete stack
+# aws cloudformation delete-stack --stack-name myRDS
+#
+# Example with parameter
+# aws cloudformation create-stack  --stack-name startmyinstance  
+#    --template-body file://home/ec2-user/templates/startmyinstance.json 
+#    --parameters  ParameterKey=KeyPairName,ParameterValue=MyKey ParameterKey=InstanceType,ParameterValue=t1.micro
+---
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "Example Setup Basic RDS - (Free Tier Setup)"
+
+Parameters:
+  VPCParameter:
+    Description: "VPC to launch instances into"
+    Type: "AWS::EC2::VPC::Id"
+    Default: 'vpc-4c3fc128'
+
+  SubnetsParameter:
+    Description: "Subnets to launch instances into"
+    Type: "List<AWS::EC2::Subnet::Id>"
+    Default: "subnet-e47ed292, subnet-604dff04"
+
+  KeyName:
+    Description: "Enter an existing EC2 KeyPair. Default is MyEC2Key"
+    Type: "String"
+    Default: "MyEC2Key"
+
+  KeyName:
+    Description: "Enter an existing EC2 KeyPair. Default is MyEC2Key"
+    Type: "String"
+    Default: "MyEC2Key"
+
+  DBName:
+    Default: "acloudguru" # default
+    Description: "The database name"
+    Type: "String"
+    MinLength: '1'
+    MaxLength: '64'
+    AllowedPattern: "[a-zA-Z][a-zA-Z0-9]*"
+    ConstraintDescription: "must begin with a letter and contain only alphanumeric characters."
+
+  DBUsername:
+    Default: "acloudguru" # default
+    NoEcho: 'true'
+    Description: "The database admin account username"
+    Type: "String"
+    MinLength: '1'
+    MaxLength: '16'
+    AllowedPattern: "[a-zA-Z][a-zA-Z0-9]*"
+    ConstraintDescription: "must begin with a letter and contain only alphanumeric characters."
+
+  DBPassword:
+    Default: "acloudguru" # default
+    NoEcho: 'true'
+    Description: "The database admin account password"
+    Type: "String"
+    MinLength: '1'
+    MaxLength: '41'
+    AllowedPattern: "[a-zA-Z0-9]*"
+    ConstraintDescription: "must contain only alphanumeric characters."
+
+  DBClass:
+    Default: "db.t2.micro"
+    Description: "Database instance class"
+    Type: "String"
+    AllowedValues:
+    - "db.t2.micro"
+    - "db.t2.small"
+    - "db.t2.medium"
+    - "db.t2.large"
+    ConstraintDescription: "must select a valid database instance type."
+
+  DBAllocatedStorage:
+    Default: '5'
+    Description: "The size of the database (Gb)"
+    Type: "Number"
+    MinValue: '5'
+    MaxValue: '1024'
+    ConstraintDescription: "must be between 5 and 1024Gb."
+
+
+###############################################################################
+Resources:
+  MyDBSubnetGroup:
+    Type: "AWS::RDS::DBSubnetGroup"
+    Properties:
+      DBSubnetGroupDescription: "Subnets available for the RDS DB Instance"
+      SubnetIds:
+        Ref: "SubnetsParameter"
+
+  webdmz:
+    Type: "AWS::EC2::SecurityGroup"
+    Properties:
+      GroupDescription: "Allow http/https/ssh to client host"
+      SecurityGroupIngress:
+          # Allow SSH Request
+        - IpProtocol: "tcp"
+          FromPort: "22"
+          ToPort: "22"
+          CidrIp: "0.0.0.0/0"
+          # Allow HTTP Request
+        - IpProtocol: 'tcp'
+          FromPort: '80'
+          ToPort: '80'
+          CidrIp: '0.0.0.0/0'
+          # Allow HTTPS Request
+        - IpProtocol: 'tcp'
+          FromPort: '443'
+          ToPort: '443'
+          CidrIp: '0.0.0.0/0'
+          # Allow Ping Request
+        - IpProtocol: 'icmp'
+          FromPort: '-1'
+          ToPort: '-1'
+          CidrIp: '0.0.0.0/0'
+      SecurityGroupEgress:
+        - IpProtocol: '-1'
+          CidrIp: '0.0.0.0/0'
+      Tags:
+        - Key: "Name"
+          Value: "webdmz"
+      VpcId:
+        Ref: "VPCParameter"
+
+  # Allow RDS from Webserver Security Group only.
+  myVPCSecurityGroup:
+    Type: "AWS::EC2::SecurityGroup"
+    Properties:
+      GroupDescription: "Security group for RDS DB Instance."
+      SecurityGroupEgress:
+      - IpProtocol: "-1"
+        CidrIp: "0.0.0.0/0"
+      SecurityGroupIngress:
+      - FromPort: "3306"
+        IpProtocol: "tcp"
+        SourceSecurityGroupId:
+          Ref: "webdmz"
+        ToPort: "3306"
+      VpcId:
+        Ref: "VPCParameter"
+
+  MyDB:
+    Type: "AWS::RDS::DBInstance"
+    Properties:
+      DBName:
+        Ref: "DBName"
+      AllocatedStorage:
+        Ref: "DBAllocatedStorage"
+      DBInstanceClass:
+        Ref: "DBClass"
+      Engine: "MySQL"
+      EngineVersion: '5.6'
+      MultiAZ: "false"
+      PubliclyAccessible: "false"
+      MasterUsername:
+        Ref: "DBUsername"
+      MasterUserPassword:
+        Ref: "DBPassword"
+      DBSubnetGroupName:
+        Ref: "MyDBSubnetGroup"
+      VPCSecurityGroups:
+      - Ref: "myVPCSecurityGroup"
+      Tags: 
+        - Key: "Name"
+          Value: "My SQL Database"
+
+Outputs:
+  JDBCConnectionString:
+    Description: "JDBC connection string for database"
+    Value:
+      Fn::Join:
+      - ''
+      - - "jdbc:mysql://"
+        - Fn::GetAtt:
+          - "MyDB"
+          - "Endpoint.Address"
+        - ":"
+        - Fn::GetAtt:
+          - "MyDB"
+          - "Endpoint.Port"
+        - "/"
+        - Ref: "DBName"
+
