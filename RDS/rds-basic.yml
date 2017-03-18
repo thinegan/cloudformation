@@ -159,6 +159,7 @@ Resources:
         Ref: "DBName"
       AllocatedStorage:
         Ref: "DBAllocatedStorage"
+      StorageType: "gp2"
       DBInstanceClass:
         Ref: "DBClass"
       Engine: "MySQL"
