@@ -1,0 +1,102 @@
+# Building Basic EC2 instance
+#
+# Validate template
+# aws cloudformation validate-template --template-body file:////Users//thinegan//mygit//cloudformation//ec2-basic.yml
+#
+# Create/Update stack 
+# aws cloudformation create-stack --stack-name myEC2 --template-body file:////Users//thinegan//mygit//cloudformation//ec2-basic.yml
+# aws cloudformation update-stack --stack-name myEC2 --template-body file:////Users//thinegan//mygit//cloudformation//ec2-basic.yml
+#
+# aws cloudformation create-stack --stack-name myEC2 --template-body file:////Users//thinegan//mygit//cloudformation//ec2-basic.yml
+#aws cloudformation create-stack  --stack-name startmyinstance  
+#    --template-body file://home/ec2-user/templates/startmyinstance.json 
+#    --parameters  ParameterKey=KeyPairName,ParameterValue=MyKey ParameterKey=InstanceType,ParameterValue=t1.micro   
+---
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "Example EC2 Set-up"
+# Paramaters are referenced using the Ref property
+# e.g. Ref: "KeyName"
+#
+# Parameters can be assigned a default value, but if not then the value
+# needs to be provided when uploading the CloudFormation.
+# If uploading via CLI then you'll provide a --parameters flag
+# If uploading via the AWS console, a GUI will be provided
+Parameters: 
+  InstanceType: 
+    Description: "Enter t2.micro or m1.small. Default is t2.micro."
+    Type: "String"
+    Default: "t2.micro"
+    AllowedValues: 
+      - "t2.micro"
+      - "m1.small"
+  KeyName:
+    Description: "Enter an existing EC2 KeyPair. Default is MyEC2Key"
+    Type: "String"
+    Default: "MyEC2Key"
+
+
+# Mappings allow us to map a key to a corresponding set of named values
+# So if our instance is brought up in the eu-west-1 region we can use
+# AWS::Region to tell us the current zone and then use the intrinsic function
+# Fn::FindInMap to return the relevant matched value
+Mappings:
+  RegionMap:
+    us-east-1:
+      "32": "ami-6411e20d"
+      "64": "ami-7a11e213"
+    us-west-1:
+      "32": "ami-c9c7978c"
+      "64": "ami-cfc7978a"
+    eu-west-1:
+      "32": "ami-37c2f643"
+      "64": "ami-31c2f645"
+    ap-southeast-1:
+      "32": "ami-6411e20d"
+      '64': "ami-dc9339bf"   # Amazon-Default-AMI
+#      '64': "ami-0842e96b"  # Debian
+    ap-northeast-1:
+      "32": "ami-9c03a89d"
+      "64": "ami-a003a8a1"
+
+# When pushing this CloudFormation we need to provide the public half of our key-pair
+# See http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-key-pairs.html
+#
+# Then when attempting to SSH into the instance we can provide the private half
+# See https://gist.github.com/Integralist/438898d6164daebec0c9
+Resources:
+  Ec2Instance:
+    Type: "AWS::EC2::Instance"
+    Properties:
+      KeyName:
+        Ref: "KeyName"
+      SecurityGroups:
+        - Ref: "InstanceSecurityGroup"
+      InstanceType:
+        Ref: "InstanceType"
+
+      # Select the correct AMI to load (based on the region the stack is created)
+      ImageId:
+        Fn::FindInMap:
+          - "RegionMap"
+          - Ref: "AWS::Region"
+          - "64"
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash -xe
+          yum install httpd -y
+          yum update -y
+          service httpd start
+          chkconfig httpd on
+          echo "<html><h1>Hello Cloud Gurus!</h1></html>" > /var/www/html/index.html
+
+
+# We're allowing any ip address to access port 22 and 3000
+  InstanceSecurityGroup:
+    Type: "AWS::EC2::SecurityGroup"
+    Properties:
+      GroupDescription: "Enable Access to our application via port 3000 and SSH access via port 22"
+      SecurityGroupIngress:
+        - IpProtocol: "tcp"
+          FromPort: "22"
+          ToPort: "22"
+          CidrIp: "0.0.0.0/0"
