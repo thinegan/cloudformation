@@ -3,11 +3,11 @@
 # You should always update Security Group Access with your own IP Address to ensure your instances security.
 #
 # How to validate template
-# aws cloudformation validate-template --template-body file:////path//ec2-basic.yml
+# aws cloudformation validate-template --template-body file:////path//cloudformation//EC2//ec2-basic.yml
 #
 # How to Create/Update stack 
-# aws cloudformation create-stack --stack-name myec2basic --template-body file:////path//ec2-basic.yml
-# aws cloudformation update-stack --stack-name myec2basic --template-body file:////path//ec2-basic.yml
+# aws cloudformation create-stack --stack-name myec2basic --template-body file:////path//cloudformation//EC2//ec2-basic.yml
+# aws cloudformation update-stack --stack-name myec2basic --template-body file:////path//cloudformation//EC2//ec2-basic.yml
 #
 # How to Delete stack
 # aws cloudformation delete-stack --stack-name myec2basic
