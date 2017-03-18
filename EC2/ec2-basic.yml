@@ -38,7 +38,7 @@ Parameters:
   KeyName:
     Description: "Enter an existing EC2 KeyPair. Default is MyEC2Key"
     Type: "String"
-    Default: "MyEC2Key"
+    Default: "MyKey-Virginia"
 
 
 # Mappings allow us to map a key to a corresponding set of named values
@@ -60,7 +60,7 @@ Mappings:
     ap-northeast-1:
       AMI: "ami-383c1956"
     us-east-1:
-      AMI: "ami-60b6c60a"
+      AMI: "ami-0b33d91d"
     sa-east-1:
       AMI: "ami-6817af04"
     us-west-1:
