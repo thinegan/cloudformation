@@ -1,19 +1,25 @@
-# Building Basic EC2 instance
+# Setup Basic EC2 instance
+# Note, this is a basic use of Cloudformation with disregard for Security Group Access
+# You should always update Security Group Access with your own IP Address to ensure your instances security.
 #
-# Validate template
-# aws cloudformation validate-template --template-body file:////Users//thinegan//mygit//cloudformation//ec2-basic.yml
+# How to validate template
+# aws cloudformation validate-template --template-body file:////path//ec2-basic.yml
 #
-# Create/Update stack 
-# aws cloudformation create-stack --stack-name myEC2 --template-body file:////Users//thinegan//mygit//cloudformation//ec2-basic.yml
-# aws cloudformation update-stack --stack-name myEC2 --template-body file:////Users//thinegan//mygit//cloudformation//ec2-basic.yml
+# How to Create/Update stack 
+# aws cloudformation create-stack --stack-name myec2basic --template-body file:////path//ec2-basic.yml
+# aws cloudformation update-stack --stack-name myec2basic --template-body file:////path//ec2-basic.yml
 #
-# aws cloudformation create-stack --stack-name myEC2 --template-body file:////Users//thinegan//mygit//cloudformation//ec2-basic.yml
-#aws cloudformation create-stack  --stack-name startmyinstance  
+# How to Delete stack
+# aws cloudformation delete-stack --stack-name myec2basic
+#
+# Example with parameter
+# aws cloudformation create-stack  --stack-name startmyinstance  
 #    --template-body file://home/ec2-user/templates/startmyinstance.json 
 #    --parameters  ParameterKey=KeyPairName,ParameterValue=MyKey ParameterKey=InstanceType,ParameterValue=t1.micro   
 ---
 AWSTemplateFormatVersion: "2010-09-09"
 Description: "Example EC2 Set-up"
+
 # Paramaters are referenced using the Ref property
 # e.g. Ref: "KeyName"
 #
@@ -36,33 +42,32 @@ Parameters:
 
 
 # Mappings allow us to map a key to a corresponding set of named values
-# So if our instance is brought up in the eu-west-1 region we can use
+# So if our instance is brought up in the ap-southeast-1 region we can use
 # AWS::Region to tell us the current zone and then use the intrinsic function
 # Fn::FindInMap to return the relevant matched value
 Mappings:
   RegionMap:
-    us-east-1:
-      "32": "ami-6411e20d"
-      "64": "ami-7a11e213"
-    us-west-1:
-      "32": "ami-c9c7978c"
-      "64": "ami-cfc7978a"
     eu-west-1:
-      "32": "ami-37c2f643"
-      "64": "ami-31c2f645"
+      AMI: "ami-bff32ccc"
     ap-southeast-1:
-      "32": "ami-6411e20d"
-      '64': "ami-dc9339bf"   # Amazon-Default-AMI
-#      '64': "ami-0842e96b"  # Debian
+      AMI: "ami-dc9339bf" # My-Default-AMI
+    ap-southeast-2:
+      AMI: "ami-48d38c2b"
+    eu-central-1:
+      AMI: "ami-bc5b48d0"
+    ap-northeast-2:
+      AMI: "ami-249b554a"
     ap-northeast-1:
-      "32": "ami-9c03a89d"
-      "64": "ami-a003a8a1"
+      AMI: "ami-383c1956"
+    us-east-1:
+      AMI: "ami-60b6c60a"
+    sa-east-1:
+      AMI: "ami-6817af04"
+    us-west-1:
+      AMI: "ami-d5ea86b5"
+    us-west-2:
+      AMI: "ami-f0091d91"
 
-# When pushing this CloudFormation we need to provide the public half of our key-pair
-# See http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-key-pairs.html
-#
-# Then when attempting to SSH into the instance we can provide the private half
-# See https://gist.github.com/Integralist/438898d6164daebec0c9
 Resources:
   Ec2Instance:
     Type: "AWS::EC2::Instance"
@@ -79,7 +84,7 @@ Resources:
         Fn::FindInMap:
           - "RegionMap"
           - Ref: "AWS::Region"
-          - "64"
+          - "AMI"
       UserData:
         Fn::Base64: !Sub |
           #!/bin/bash -xe
@@ -90,11 +95,12 @@ Resources:
           echo "<html><h1>Hello Cloud Gurus!</h1></html>" > /var/www/html/index.html
 
 
-# We're allowing any ip address to access port 22 and 3000
+# We're allowing any ip address to access port 22 (temporary access)
+# You should replace with your own ip for security purpose.
   InstanceSecurityGroup:
     Type: "AWS::EC2::SecurityGroup"
     Properties:
-      GroupDescription: "Enable Access to our application via port 3000 and SSH access via port 22"
+      GroupDescription: "Enable Access to our SSH access via port 22"
       SecurityGroupIngress:
         - IpProtocol: "tcp"
           FromPort: "22"
