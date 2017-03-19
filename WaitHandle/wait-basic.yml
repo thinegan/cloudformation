@@ -1,0 +1,154 @@
+# Setup Basic Wait Condition
+#
+# Note, this is a basic use of Cloudformation with disregard for Security Group Access
+# You should always update Security Group Access with your own IP Address to ensure your instances security.
+#
+# How to validate template
+# aws cloudformation validate-template --template-body file:////path//cloudformation//WaitHandle//wait-basic.yml
+#
+# How to Create/Update stack 
+# aws cloudformation create-stack --stack-name myWAIT --template-body file:////path//cloudformation//WaitHandle//wait-basic.yml
+# aws cloudformation update-stack --stack-name myWAIT --template-body file:////path//cloudformation//WaitHandle//wait-basic.yml
+#
+# How to Delete stack
+# aws cloudformation delete-stack --stack-name myWAIT
+#
+# Example with parameter
+# aws cloudformation create-stack  --stack-name startmyinstance  
+#    --template-body file://home/ec2-user/templates/startmyinstance.json 
+#    --parameters  ParameterKey=KeyPairName,ParameterValue=MyKey ParameterKey=InstanceType,ParameterValue=t1.micro
+
+---
+AWSTemplateFormatVersion: '2010-09-09'
+
+Parameters: 
+  InstanceType: 
+    Description: "Enter t2.micro or m1.small. Default is t2.micro."
+    Type: "String"
+    Default: "t2.micro"
+    AllowedValues: 
+      - "t2.micro"
+      - "m1.small"
+  KeyName:
+    Description: "Enter an existing EC2 KeyPair. Default is MyEC2Key"
+    Type: "String"
+    Default: "MyEC2Key"
+
+# Mappings allow us to map a key to a corresponding set of named values
+# So if our instance is brought up in the eu-west-1 region we can use
+# AWS::Region to tell us the current zone and then use the intrinsic function
+# Fn::FindInMap to return the relevant matched value
+Mappings:
+  RegionMap:
+    eu-west-1:
+      AMI: "ami-bff32ccc"
+    ap-southeast-1:
+      AMI: "ami-dc9339bf" # My-Default-AMI
+    ap-southeast-2:
+      AMI: "ami-48d38c2b"
+    eu-central-1:
+      AMI: "ami-bc5b48d0"
+    ap-northeast-2:
+      AMI: "ami-249b554a"
+    ap-northeast-1:
+      AMI: "ami-383c1956"
+    us-east-1:
+      AMI: "ami-0b33d91d"
+    sa-east-1:
+      AMI: "ami-6817af04"
+    us-west-1:
+      AMI: "ami-d5ea86b5"
+    us-west-2:
+      AMI: "ami-f0091d91"
+
+Resources:
+  MyInstance:
+    Type: "AWS::EC2::Instance"
+    Properties:
+      KeyName:
+        Ref: "KeyName"
+      SecurityGroups:
+        - Ref: "InstanceSecurityGroup"
+      InstanceType:
+        Ref: "InstanceType"
+      ImageId:
+        Fn::FindInMap:
+          - "RegionMap"
+          - Ref: "AWS::Region"
+          - "AMI"
+      Monitoring: 'false'
+      UserData:
+        Fn::Base64:
+          Fn::Join:
+            - ""
+            -
+              - "#!/bin/bash -ex"
+              - "\n"
+              - "yum update -y aws-cfn-bootstrap"
+              - "\n"
+              - "yum update -y"
+              - "\n"
+              - "yum install httpd -y"
+              - "\n"
+              - "service httpd start"
+              - "\n"
+              - "chkconfig httpd on"
+              - "\n"
+              - "echo \"<html><h1>Hello Cloud Gurus!</h1></html>\" > /var/www/html/index.html"
+              - "\n"
+              - "curl -X PUT -H 'Content-Type:' --data-binary '{\"Status\" : \"SUCCESS\","
+              - "\"Reason\" : \"Configuration Complete\","
+              - "\"UniqueId\" : \"ID1234\","
+              - "\"Data\" : \"Application has completed configuration.\"}' "
+              - "\""
+              - Ref: "WaitHandle"
+              - "\"\n"
+
+  WaitHandle:
+    Type: "AWS::CloudFormation::WaitConditionHandle"
+  WaitCondition:
+    Type: "AWS::CloudFormation::WaitCondition"
+    DependsOn: "MyInstance"
+    Properties:
+      Handle:
+        Ref: "WaitHandle"
+      Timeout: '300'
+
+  # We're allowing any ip address to access port 22 and 80,443
+  InstanceSecurityGroup:
+    Type: "AWS::EC2::SecurityGroup"
+    Properties:
+      GroupDescription: "Enable Access to HTTP/HTTPS and SSH access"
+      SecurityGroupIngress:
+          # Allow SSH Request
+        - IpProtocol: "tcp"
+          FromPort: "22"
+          ToPort: "22"
+          CidrIp: "0.0.0.0/0"
+          # Allow HTTP Request
+        - IpProtocol: 'tcp'
+          FromPort: '80'
+          ToPort: '80'
+          CidrIp: '0.0.0.0/0'
+          # Allow HTTPS Request
+        - IpProtocol: 'tcp'
+          FromPort: '443'
+          ToPort: '443'
+          CidrIp: '0.0.0.0/0'
+          # Allow Ping Request
+        - IpProtocol: 'icmp'
+          FromPort: '-1'
+          ToPort: '-1'
+          CidrIp: '0.0.0.0/0'
+
+Outputs:
+  WebsiteURL:
+    Description: "Our Website URL"
+    Value:
+      Fn::Join:
+        - ""
+        -
+          - "http://"
+          - Fn::GetAtt:
+              - "MyInstance"
+              - "PublicIp"

@@ -1,0 +1,205 @@
+# Setup Basic ELB 
+#
+# Note, this is a basic use of Cloudformation with disregard for Security Group Access
+# You should always update Security Group Access with your own IP Address to ensure your instances security.
+#
+# How to validate template
+# aws cloudformation validate-template --template-body file:////path//cloudformation//ELB//elb-stage1.yml
+#
+# How to Create/Update stack 
+# aws cloudformation create-stack --stack-name myELB --template-body file:////path//cloudformation//ELB//elb-stage1.yml
+# aws cloudformation update-stack --stack-name myELB --template-body file:////path//cloudformation//ELB//elb-stage1.yml
+#
+# How to Delete stack
+# aws cloudformation delete-stack --stack-name myELB
+#
+# Example with parameter
+# aws cloudformation create-stack  --stack-name startmyinstance  
+#    --template-body file://home/ec2-user/templates/startmyinstance.json 
+#    --parameters  ParameterKey=KeyPairName,ParameterValue=MyKey ParameterKey=InstanceType,ParameterValue=t1.micro
+---
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "Example ELB Set-up Stage1"
+Parameters: 
+  InstanceType: 
+    Description: "Enter t2.micro or m1.small. Default is t2.micro."
+    Type: "String"
+    Default: "t2.micro"
+    AllowedValues: 
+      - "t2.micro"
+      - "m1.small"
+  KeyName:
+    Description: "Enter an existing EC2 KeyPair. Default is MyEC2Key"
+    Type: "String"
+    Default: "MyEC2Key"
+
+# Mappings allow us to map a key to a corresponding set of named values
+# So if our instance is brought up in the eu-west-1 region we can use
+# AWS::Region to tell us the current zone and then use the intrinsic function
+# Fn::FindInMap to return the relevant matched value
+Mappings:
+  RegionMap:
+    eu-west-1:
+      AMI: "ami-bff32ccc"
+    ap-southeast-1:
+      AMI: "ami-dc9339bf" # My-Default-AMI
+    ap-southeast-2:
+      AMI: "ami-48d38c2b"
+    eu-central-1:
+      AMI: "ami-bc5b48d0"
+    ap-northeast-2:
+      AMI: "ami-249b554a"
+    ap-northeast-1:
+      AMI: "ami-383c1956"
+    us-east-1:
+      AMI: "ami-0b33d91d"
+    sa-east-1:
+      AMI: "ami-6817af04"
+    us-west-1:
+      AMI: "ami-d5ea86b5"
+    us-west-2:
+      AMI: "ami-f0091d91"
+
+Resources:
+  # First EC2 Instances
+  MyWebServer1:
+    Type: "AWS::EC2::Instance"
+    Properties:
+      KeyName:
+        Ref: "KeyName"
+      SecurityGroups:
+        - Ref: "webdmz"
+      InstanceType:
+        Ref: "InstanceType"
+      ImageId:
+        Fn::FindInMap:
+          - "RegionMap"
+          - Ref: "AWS::Region"
+          - "AMI"
+      AvailabilityZone: 
+        Fn::Select: 
+          - "0"
+          - Fn::GetAZs: ""
+      Tags:
+        - Key: "Name"
+          Value: "MyWebServer1"
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash -xe
+          yum install httpd -y
+          yum update -y
+          service httpd start
+          chkconfig httpd on
+          echo "<html><h1>Hello Cloud Gurus!</h1></html>" > /var/www/html/index.html
+
+  # Second EC2 instance
+  MyWebServer2:
+    Type: "AWS::EC2::Instance"
+    Properties:
+      KeyName:
+        Ref: "KeyName"
+      SecurityGroups:
+        - Ref: "webdmz"
+      InstanceType:
+        Ref: "InstanceType"
+      ImageId:
+        Fn::FindInMap:
+          - "RegionMap"
+          - Ref: "AWS::Region"
+          - "AMI"
+      AvailabilityZone: 
+        Fn::Select: 
+          - "1"
+          - Fn::GetAZs: ""
+      Tags:
+        - Key: "Name"
+          Value: "MyWebServer2"
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash -xe
+          yum install httpd -y
+          yum update -y
+          service httpd start
+          chkconfig httpd on
+          echo "<html><h1>Hello Cloud Gurus!</h1></html>" > /var/www/html/index.html
+
+
+  # Building Security Group - WebDMZ
+  # Note: SecurityGroupEgress cannot be specified without VpcId
+  webdmz:
+    Type: "AWS::EC2::SecurityGroup"
+    Properties:
+      GroupDescription: "Allow http/https/ssh to client host"
+      SecurityGroupIngress:
+          # Allow SSH Request
+        - IpProtocol: "tcp"
+          FromPort: "22"
+          ToPort: "22"
+          CidrIp: "0.0.0.0/0"
+          # Allow HTTP Request
+        - IpProtocol: 'tcp'
+          FromPort: '80'
+          ToPort: '80'
+          CidrIp: '0.0.0.0/0'
+          # Allow HTTPS Request
+        - IpProtocol: 'tcp'
+          FromPort: '443'
+          ToPort: '443'
+          CidrIp: '0.0.0.0/0'
+          # Allow Ping Request
+        - IpProtocol: 'icmp'
+          FromPort: '-1'
+          ToPort: '-1'
+          CidrIp: '0.0.0.0/0'
+      Tags:
+        - Key: "Name"
+          Value: "webdmz"
+
+  # My Basic Elastic Load Balancer
+  MyLoadBalancer:
+    Type: "AWS::ElasticLoadBalancing::LoadBalancer"
+    Properties:
+      AvailabilityZones:
+        Fn::GetAZs:
+          Ref: "AWS::Region"
+      CrossZone: "true"
+      Instances:
+      - Ref: "MyWebServer1"
+      - Ref: "MyWebServer2"
+      Listeners:
+      - LoadBalancerPort: '80'
+        InstancePort: '80'
+        Protocol: "HTTP"
+      HealthCheck:
+        Target: "HTTP:80/"
+        HealthyThreshold: '4'
+        UnhealthyThreshold: '6'
+        Interval: '30'
+        Timeout: '5'
+
+# Output Server dns name and publicIP
+Outputs:
+  MyWebServer1DNSName:
+    Description: "Public DNS name of the new EC2 instance"
+    Value:
+      Fn::GetAtt:
+      - "MyWebServer1"
+      - "PublicDnsName"
+  MyWebServer1IPAddress:
+    Description: "Public IP address of the new EC2 instance"
+    Value:
+      Fn::GetAtt:
+      - "MyWebServer1"
+      - "PublicIp"
+  MyWebServer2DNSName:
+    Description: "Public DNS name of the new EC2 instance"
+    Value:
+      Fn::GetAtt:
+      - "MyWebServer2"
+      - "PublicDnsName"
+  MyWebServer2IPAddress:
+    Description: "Public IP address of the new EC2 instance"
+    Value:
+      Fn::GetAtt:
+      - "MyWebServer2"
+      - "PublicIp"
