@@ -1,0 +1,67 @@
+# Building IAM S3 Full Access Role
+# Allow EC2 instance full access to S3 bucket
+#
+# Note, this is a basic use of Cloudformation with disregard for Security Group Access
+# You should always update Security Group Access with your own IP Address to ensure your instances security.
+#
+# How to validate template
+# aws cloudformation validate-template --template-body file:////path//cloudformation//IAM//s3access-role.yml
+#
+# How to Create/Update stack 
+# aws cloudformation create-stack --stack-name myS3 --capabilities=CAPABILITY_IAM --template-body file:////path//cloudformation//IAM//s3access-role.yml
+# aws cloudformation update-stack --stack-name myS3 --capabilities=CAPABILITY_IAM --template-body file:////path//cloudformation//IAM//s3access-role.yml
+#
+# How to Delete stack
+# aws cloudformation delete-stack --stack-name myS3
+#
+# Example with parameter
+# aws cloudformation create-stack  --stack-name startmyinstance  
+#    --template-body file://home/ec2-user/templates/startmyinstance.json 
+#    --parameters  ParameterKey=KeyPairName,ParameterValue=MyKey ParameterKey=InstanceType,ParameterValue=t1.micro     
+---
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "Policy to Allow EC2 instance full access to S3 bucket"
+Resources: 
+  S3Access:
+    Type: "AWS::IAM::Role"
+    Properties:
+      ManagedPolicyArns: 
+        - "arn:aws:iam::aws:policy/AmazonS3FullAccess"
+      AssumeRolePolicyDocument: 
+        Version: "2012-10-17"
+        Statement: 
+          - 
+            Effect: "Allow"
+            Principal: 
+              Service: 
+                - "ec2.amazonaws.com"
+            Action: 
+              - "sts:AssumeRole"
+      Path: "/"
+
+# Update Inline or Custom Policy Here (Example).
+#      Policies:
+#        - 
+#          PolicyName: "MyCustomS3FullAccess"
+#          PolicyDocument: 
+#            Version: "2012-10-17"
+#            Statement: 
+#              - 
+#                Effect: "Allow"
+#                Action: "S3:*"
+#                Resource: "*"
+#
+# AWS::IAM::InstanceProfile
+# Creates an AWS Identity and Access Management (IAM) Instance Profile that can be used with IAM Roles for EC2 Instances.
+
+  S3AccessInstanceProfile: 
+    Type: "AWS::IAM::InstanceProfile"
+    Properties: 
+      Path: "/"
+      Roles: 
+        - 
+          Ref: "S3Access"
+Outputs:
+  RoleName:
+    Value: !Ref "S3Access"
+    Description: "Policy to Allow EC2 instance full access to S3 bucket"
