@@ -1,0 +1,67 @@
+# Building Basic Cloudfront
+#
+# Note, this is a basic use of Cloudformation with disregard for Security Group Access
+# You should always update Security Group Access with your own IP Address to ensure your instances security.
+#
+# How to validate template
+# aws cloudformation validate-template --template-body file:////path//cloudformation//CloudFront//cloudfront-basic.yml
+#
+# How to Create/Update stack 
+# aws cloudformation create-stack --stack-name myCF --template-body file:////path//cloudformation//CloudFront//cloudfront-basic.yml
+# aws cloudformation update-stack --stack-name myCF --template-body file:////path//cloudformation//CloudFront//cloudfront-basic.yml
+#
+# How to Delete stack
+# aws cloudformation delete-stack --stack-name myCF
+#
+# Example with parameter
+# aws cloudformation create-stack  --stack-name startmyinstance  
+#    --template-body file://home/ec2-user/templates/startmyinstance.json 
+#    --parameters  ParameterKey=KeyPairName,ParameterValue=MyKey ParameterKey=InstanceType,ParameterValue=t1.micro
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Description: "CMS-API cloudformation template"
+Resources:
+  WebBucket:
+    Type: "AWS::S3::Bucket"
+    Properties:
+      AccessControl: "PublicRead"
+      BucketName: "myuniquebucketnamethinegww34"
+      WebsiteConfiguration:
+        IndexDocument: "index.html"
+        ErrorDocument: "error.html"
+    DeletionPolicy: "Retain"
+  CDN:
+    Type: "AWS::CloudFront::Distribution"
+    Properties:
+      DistributionConfig:
+        Origins:
+        - DomainName:
+            Fn::GetAtt:
+            - "WebBucket"
+            - "DomainName"
+          Id: "WebBucket"
+          S3OriginConfig: {}
+        - Id: "myCustomOrigin"
+          DomainName: "www.foo.bar"
+          CustomOriginConfig:
+            HTTPPort: '80'
+            HTTPSPort: '443'
+            OriginProtocolPolicy: "match-viewer"
+            OriginSSLProtocols:
+              - "TLSv1.2"
+        #Value of property OriginSSLProtocols must be of type List of String
+        Enabled: 'true'
+        Aliases:
+        - "foo.bar"
+        - "www.foo.bar"
+        DefaultCacheBehavior:
+          TargetOriginId: "WebBucket"
+          ForwardedValues:
+            QueryString: 'false'
+          ViewerProtocolPolicy: "allow-all"
+        ViewerCertificate:
+          CloudFrontDefaultCertificate: 'true'
+          # Own Certs
+          #IamCertificateId: ASCAIR75318008XXX
+          #SslSupportMethod: sni-only
+        PriceClass: "PriceClass_All"

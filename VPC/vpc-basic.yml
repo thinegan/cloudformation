@@ -1,0 +1,149 @@
+# Setup Basic Custom VPC
+# Warning, this is non-free tier (Nat Gateway price ~ $0.05/hr)
+#
+# Note, this is a basic use of Cloudformation with disregard for Security Group Access
+# You should always update Security Group Access with your own IP Address to ensure your instances security.
+#
+# How to validate template
+# aws cloudformation validate-template --template-body file:////path//cloudformation//VPC//vpc-basic.yml
+#
+# How to Create/Update stack 
+# aws cloudformation create-stack --stack-name myVPCBasic --template-body file:////path//cloudformation//VPC//vpc-basic.yml
+# aws cloudformation update-stack --stack-name myVPCBasic --template-body file:////path//cloudformation//VPC//vpc-basic.yml
+#
+# How to Delete stack
+# aws cloudformation delete-stack --stack-name myVPCBasic
+#
+# Example with parameter
+# aws cloudformation create-stack  --stack-name startmyinstance  
+#    --template-body file://home/ec2-user/templates/startmyinstance.json 
+#    --parameters  ParameterKey=KeyPairName,ParameterValue=MyKey ParameterKey=InstanceType,ParameterValue=t1.micro
+---
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "Building Custom VPC"
+Resources:
+####### Creation of the custom VPC #######
+  VPC:
+    Type: "AWS::EC2::VPC"
+    Properties:
+      CidrBlock: "10.0.0.0/16"
+      Tags:
+      - Key: "Name"
+        Value: "MyVPC"
+
+####### Creation of the public subnet #######
+  PublicSubnet:
+    Type: "AWS::EC2::Subnet"
+    Properties:
+      VpcId:
+        Ref: "VPC"
+      CidrBlock: "10.0.1.0/24"
+      AvailabilityZone: "ap-southeast-1a"
+      MapPublicIpOnLaunch: True
+      Tags:
+      - Key: "Name"
+        Value: "10.0.1.0 - ap-southeast-1a"
+
+####### Creation of the private subnet #######
+  PrivateSubnet:
+    Type: "AWS::EC2::Subnet"
+    Properties:
+      VpcId:
+        Ref: "VPC"
+      CidrBlock: "10.0.2.0/24"
+      AvailabilityZone: "ap-southeast-1b"
+      Tags:
+      - Key: "Name"
+        Value: "10.0.2.0 - ap-southeast-1b"
+
+####### Creation of the Internet Gateway #######
+  MyInternetGateway:
+    Type: "AWS::EC2::InternetGateway"
+    Properties:
+      Tags:
+      - Key: "Name"
+        Value: "MyIGW"
+
+####### Attach Internet Gateway to VPC #######
+  GatewayToInternet:
+    Type: "AWS::EC2::VPCGatewayAttachment"
+    Properties:
+      VpcId:
+        Ref: "VPC"
+      InternetGatewayId:
+        Ref: "MyInternetGateway"
+
+####### Creation of the Public Route Table #######
+  MyPublicRouteTable:
+    Type: "AWS::EC2::RouteTable"
+    Properties:
+      VpcId:
+        Ref: "VPC"
+      Tags:
+      - Key: "Name"
+        Value: "MyPublicRoute"
+
+####### Creation of the Private Route Table #######
+  MyPrivateRouteTable:
+    Type: "AWS::EC2::RouteTable"
+    Properties:
+      VpcId:
+        Ref: "VPC"
+      Tags:
+      - Key: "Name"
+        Value: "MyPrivateRoute"
+
+####### Route-out Public Route Table to Internet Gateway (Internet connection)  #######
+  MyPublicRouteIGW:
+    Type: "AWS::EC2::Route"
+    DependsOn: "GatewayToInternet"
+    Properties:
+      RouteTableId:
+        Ref: "MyPublicRouteTable"
+      DestinationCidrBlock: "0.0.0.0/0"
+      GatewayId:
+        Ref: "MyInternetGateway"
+
+####### Associate Public Route Table with Public Subnet (10.0.1.0 - ap-southeast-1a) #######
+  MyPublicSubnetRouteTableAssociation:
+    Type: "AWS::EC2::SubnetRouteTableAssociation"
+    Properties:
+      SubnetId:
+        Ref: "PublicSubnet"
+      RouteTableId:
+        Ref: "MyPublicRouteTable"
+
+####### Associate Private Route Table with Private Subnet (10.0.2.0 - ap-southeast-1b) #######
+  MyPrivateSubnetRouteTableAssociation:
+    Type: "AWS::EC2::SubnetRouteTableAssociation"
+    Properties:
+      SubnetId:
+        Ref: "PrivateSubnet"
+      RouteTableId:
+        Ref: "MyPrivateRouteTable"
+
+####### Creation of the Nat Gateway in Public Subnet #######
+####### Allocate Elastic IP to Nat Gateway #######
+####### Target Private Route Table with Nat Gateway #######
+  MyNATGateway:
+    DependsOn: "GatewayToInternet"
+    Type: "AWS::EC2::NatGateway"
+    Properties:
+      AllocationId:
+        Fn::GetAtt:
+        - "EIP"
+        - "AllocationId"       
+      SubnetId:
+        Ref: "PublicSubnet"
+  EIP:
+    Type: "AWS::EC2::EIP"
+    Properties:
+      Domain: "VPC"
+  Route:
+    Type: "AWS::EC2::Route"
+    Properties:
+      RouteTableId:
+        Ref: "MyPrivateRouteTable"
+      DestinationCidrBlock: "0.0.0.0/0"
+      NatGatewayId:
+        Ref: "MyNATGateway"
