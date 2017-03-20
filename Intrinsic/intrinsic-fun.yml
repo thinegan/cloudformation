@@ -173,6 +173,23 @@ Outputs:
       - "Ec2Instance"
       - "PublicDnsName"
 
+  # The intrinsic function Fn::Sub substitutes variables in an input string with values that you specify. In your templates,
+  # you can use this function to construct commands or outputs that include values that aren't available until you create or update a stack.
+  # http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/intrinsic-function-reference-sub.html
+  # Syntax for the full function name:
+  # "Fn::Sub":
+  #   - String
+  #   - { Var1Name: Var1Value, Var2Name: Var2Value }
+  # Syntax for the short form:
+  # !Sub
+  #   - String
+  #   - { Var1Name: Var1Value, Var2Name: Var2Value }
+  KeyName:
+    Description: "Simple Description KeyName"
+    Value: !Sub |
+      StackName: ${AWS::StackName}
+      ${KeyName}.pem
+      
   IP:
     Description: "Public IP address of the new EC2 instance"
     Value: !GetAtt "Ec2Instance.PublicIp"
@@ -183,6 +200,18 @@ Outputs:
       Fn::GetAtt:
       - "Ec2Instance"
       - "AvailabilityZone"
+
+  # Fn::Select
+  # The intrinsic function Fn::Select returns a single object from a list of objects by index.
+  # http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/intrinsic-function-reference-select.html
+  # Syntax for the full function name:
+  # "Fn::Select": [ index, listOfObjects ] 
+  # Syntax for the short form:
+  # !Select [ index, listOfObjects ]
+  # Eg. !Select [ "1", [ "apples", "grapes", "oranges", "mangoes" ] ]
+  AllAZs:
+    Description: "Simple Description AllAZs"
+    Value: !Select [ '0', !GetAZs ]
 
   SecurityGroup:
     Description: "Simple Description SecurityGroup"
@@ -207,6 +236,23 @@ Outputs:
   AccountId:
     Description: "Simple Description AccountId"
     Value: !Ref "AWS::AccountId"
+
+# You can use the optional Metadata section to include arbitrary JSON objects that provide details about the template.
+# http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/metadata-section-structure.html
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+    - Label:
+        default: "Network Settings"
+      Parameters:
+        - "KeyName"
+        - "VPCParameter"
+        - "SecurityGroupId"
+
+
+
+
+
 
 
 
