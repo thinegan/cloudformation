@@ -38,11 +38,6 @@ Parameters:
     Type: "String"
     Default: "MyEC2Key"
 
-  KeyName:
-    Description: "Enter an existing EC2 KeyPair. Default is MyEC2Key"
-    Type: "String"
-    Default: "MyEC2Key"
-
   DBName:
     Default: "acloudguru" # default
     Description: "The database name"

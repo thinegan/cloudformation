@@ -1,0 +1,225 @@
+# Setup Basic RDS
+# - Setup RDS with Environment Condition dev/prod
+#
+# Note, this is a basic use of Cloudformation with disregard for Security Group Access
+# You should always update Security Group Access with your own IP Address to ensure your instances security.
+#
+# How to validate template
+# aws cloudformation validate-template --template-body file:////path//cloudformation//RDS//rds-level1.yml
+#
+# How to Create/Update stack 
+# aws cloudformation create-stack --stack-name myRDS1 --parameters  ParameterKey=EnvironmentName,ParameterValue=dev --template-body file:////path//cloudformation//RDS//rds-level1.yml
+# aws cloudformation update-stack --stack-name myRDS1 --parameters  ParameterKey=EnvironmentName,ParameterValue=dev --template-body file:////path//cloudformation//RDS//rds-level1.yml
+#
+# How to Delete stack
+# aws cloudformation delete-stack --stack-name myRDS1
+#
+# Example with parameter
+# aws cloudformation create-stack  --stack-name startmyinstance  
+#    --template-body file://home/ec2-user/templates/startmyinstance.json 
+#    --parameters  ParameterKey=KeyPairName,ParameterValue=MyKey ParameterKey=InstanceType,ParameterValue=t1.micro
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Description: "Setup RDS with Dev/Prod Condition"
+# Database stack creation prerequisite:  first create a VPC stack.
+Parameters:
+
+  VPCParameter:
+    Description: "VPC to launch instances into"
+    Type: "AWS::EC2::VPC::Id"
+    Default: 'vpc-4c3fc128'
+
+  SubnetsParameter:
+    Description: "Subnets to launch instances into"
+    Type: "List<AWS::EC2::Subnet::Id>"
+    Default: "subnet-e47ed292, subnet-604dff04"
+
+  KeyName:
+    Description: "Enter an existing EC2 KeyPair. Default is MyEC2Key"
+    Type: "String"
+    Default: "MyEC2Key"
+
+  DatabaseUser:
+    Default: "startupadmin"
+    NoEcho: 'true'
+    Type: "String"
+    Description: "Database admin account name"
+    MinLength: '5'
+    MaxLength: '16'
+    AllowedPattern: "[a-zA-Z][a-zA-Z0-9]*"
+    ConstraintDescription: "Name must begin with a letter and contain only alphanumeric characters."
+
+  DatabasePassword:
+    Default: "0bee082a464"
+    NoEcho: 'true'
+    Type: "String"
+    Description: "Database admin account password"
+    MinLength: '6'
+    MaxLength: '41'
+    AllowedPattern: "[a-zA-Z0-9]*"
+    ConstraintDescription: "Password must contain only alphanumeric characters."
+
+  DatabaseName:
+    Default: "StartupDB"
+    Type: "String"
+    Description: "Database name"
+    MinLength: '1'
+    MaxLength: '30'
+    AllowedPattern: "[a-zA-Z][a-zA-Z0-9]*"
+    ConstraintDescription: "Name must begin with a letter and contain only alphanumeric characters."
+    
+  DatabaseSize:
+    Default: '5'
+    Type: "String"
+    Description: "Database storage size in gigabytes (GB)"
+    MinLength: '1'
+    AllowedPattern: "[5-9][0-9]*"
+    ConstraintDescription: "Enter a size of at least 5 GB"
+    
+  DatabaseEngine:
+    Default: "mysql"
+    Type: "String"
+    Description: "Database engine, MySQL or PostgreSQL"
+    ConstraintDescription: "Choose an engine from the drop down"
+    AllowedValues: 
+      - "mysql"
+      - "postgres"
+
+  DatabaseInstanceClass:
+    Default: "db.t2.micro"
+    Type: "String"
+    Description: "Database instance class, e.g. db.t2.micro (free tier)"
+    ConstraintDescription: "Choose an instance class from the drop down"
+    AllowedValues: 
+      - "db.t2.micro"
+      - "db.t2.small"
+      - "db.t2.medium"
+      - "db.t2.large"
+      - "db.m4.large"
+      - "db.m4.xlarge"
+      - "db.m4.2xlarge"
+      - "db.m4.4xlarge"
+      - "db.m4.10xlarge"
+      - "db.r3.large"
+      - "db.r3.xlarge"
+      - "db.r3.2xlarge"
+      - "db.r3.4xlarge"
+      - "db.r3.8xlarge"
+      
+  EnvironmentName:
+    Description: "Environment name, either dev or prod."
+    Type: "String"
+    MinLength: '1'
+    MaxLength: '255'
+    AllowedValues: 
+      - "dev"
+      - "prod"
+    ConstraintDescription: "Specify either dev or prod."
+    
+
+Conditions: 
+
+  CreateProdEnv: !Equals [ !Ref "EnvironmentName", "prod" ]
+
+
+
+Resources:
+
+  Database:
+    Type: "AWS::RDS::DBInstance"
+    Properties:
+      DBSubnetGroupName: !Ref "DbSubnetGroup"
+      VPCSecurityGroups:
+      - Ref: "myVPCSecurityGroup"
+      Engine: !Ref "DatabaseEngine"
+      DBName: !Ref "DatabaseName"
+      MasterUsername: !Ref "DatabaseUser"
+      MasterUserPassword: !Ref "DatabasePassword"
+      DBInstanceClass: !Ref "DatabaseInstanceClass"
+      AllocatedStorage: !Ref "DatabaseSize"
+      StorageType: "gp2"
+      MultiAZ: !If [ "CreateProdEnv", 'true', 'false' ]
+
+  DbSubnetGroup:
+    Type: "AWS::RDS::DBSubnetGroup"
+    Properties:
+      DBSubnetGroupDescription: "RDS DB subnet group"
+      SubnetIds:
+        Ref: "SubnetsParameter"
+
+  webdmz:
+    Type: "AWS::EC2::SecurityGroup"
+    Properties:
+      GroupDescription: "Allow http/https/ssh to client host"
+      SecurityGroupIngress:
+          # Allow SSH Request
+        - IpProtocol: "tcp"
+          FromPort: "22"
+          ToPort: "22"
+          CidrIp: "0.0.0.0/0"
+          # Allow HTTP Request
+        - IpProtocol: 'tcp'
+          FromPort: '80'
+          ToPort: '80'
+          CidrIp: '0.0.0.0/0'
+          # Allow HTTPS Request
+        - IpProtocol: 'tcp'
+          FromPort: '443'
+          ToPort: '443'
+          CidrIp: '0.0.0.0/0'
+          # Allow Ping Request
+        - IpProtocol: 'icmp'
+          FromPort: '-1'
+          ToPort: '-1'
+          CidrIp: '0.0.0.0/0'
+      SecurityGroupEgress:
+        - IpProtocol: '-1'
+          CidrIp: '0.0.0.0/0'
+      Tags:
+        - Key: "Name"
+          Value: "webdmz"
+      VpcId:
+        Ref: "VPCParameter"
+
+  # Allow RDS from Webserver Security Group only.
+  myVPCSecurityGroup:
+    Type: "AWS::EC2::SecurityGroup"
+    Properties:
+      GroupDescription: "Security group for RDS DB Instance."
+      SecurityGroupEgress:
+      - IpProtocol: "-1"
+        CidrIp: "0.0.0.0/0"
+      SecurityGroupIngress:
+      - FromPort: "3306"
+        IpProtocol: "tcp"
+        SourceSecurityGroupId:
+          Ref: "webdmz"
+        ToPort: "3306"
+      VpcId:
+        Ref: "VPCParameter"
+
+Outputs:
+
+  RdsDbId:
+    Description: "RDS Database ID"
+    Value: !Ref "Database"
+    Export:
+      Name: !Sub "${AWS::StackName}-DatabaseID"
+
+  RdsDbURL:
+    Description: "RDS Database URL"
+    Value: !GetAtt "Database.Endpoint.Address"
+    Export:
+      Name: !Sub "${AWS::StackName}-DatabaseURL"
+
+  DbUser:
+    Description: "RDS Database admin account user"
+    Value: !Ref "DatabaseUser"
+    Export:
+      Name: !Sub "${AWS::StackName}-DatabaseUser"
+
+  DbPassword:
+    Description: "RDS Database admin account password"
+    Value: !Ref "DatabasePassword"
+    Export:
+      Name: !Sub "${AWS::StackName}-DatabasePassword"
