@@ -50,6 +50,17 @@ Parameters:
     Description: "VPC to launch instances into"
     Type: "AWS::EC2::VPC::Id"
 
+  ENVParameter:
+    Default: "dev"
+    Description: "Environment name, either dev or prod."
+    Type: "String"
+    MinLength: '1'
+    MaxLength: '255'
+    AllowedValues: 
+      - "dev"
+      - "prod"
+    ConstraintDescription: "Specify either 'dev' or 'prod'."
+
 
 # Fn::FindInMap
 # The intrinsic function Fn::FindInMap returns the value corresponding to keys in a two-level map that is declared in the Mappings section.
@@ -81,6 +92,16 @@ Mappings:
     us-west-2:
       AMI: "ami-f0091d91"
 
+# http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/intrinsic-function-reference-conditions.html
+# Fn::Equals Compares if two values are equal. Returns true if the two values are equal or false if they aren't.
+# Syntax for the full function name:
+# "Fn::Equals": [value_1, value_2]
+# Syntax for the short form:
+# !Equals [value_1, value_2]
+Conditions: 
+  UseProdEnv: !Equals [ !Ref "ENVParameter", "prod" ]
+
+
 Resources:
   Ec2Instance:
     Type: "AWS::EC2::Instance"
@@ -96,6 +117,20 @@ Resources:
           - "RegionMap"
           - Ref: "AWS::Region"
           - "AMI"
+      Tags:
+        - Key: "Name"
+          # "Fn::If": [condition_name, value_if_true, value_if_false]
+          # !If [condition_name, value_if_true, value_if_false]
+          Value: !If [ "UseProdEnv", 'ProdServer', 'DevServer' ]
+
+      # Fn::Base64
+      # The intrinsic function Fn::Base64 returns the Base64 representation of the input string. This function is typically used to 
+      # pass encoded data to Amazon EC2 instances by way of the UserData property.
+      # http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/intrinsic-function-reference-base64.html
+      # Syntax for the full function name:
+      # "Fn::Base64": valueToEncode
+      # Syntax for the short form:
+      # !Base64 valueToEncode      
       UserData:
         Fn::Base64: !Sub |
           #!/bin/bash -xe
