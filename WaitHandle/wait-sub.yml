@@ -1,0 +1,147 @@
+# Setup Basic Wait Condition
+#
+# Note, this is a basic use of Cloudformation with disregard for Security Group Access
+# You should always update Security Group Access with your own IP Address to ensure your instances security.
+#
+# How to validate template
+# aws cloudformation validate-template --template-body file:////path//cloudformation//WaitHandle//wait-basic.yml
+#
+# How to Create/Update stack 
+# aws cloudformation create-stack --stack-name myWAITSub --template-body file:////path//cloudformation//WaitHandle//wait-basic.yml
+# aws cloudformation update-stack --stack-name myWAITSub --template-body file:////path//cloudformation//WaitHandle//wait-basic.yml
+#
+# How to Delete stack
+# aws cloudformation delete-stack --stack-name myWAITSub
+#
+# Example with parameter
+# aws cloudformation create-stack  --stack-name startmyinstance  
+#    --template-body file://home/ec2-user/templates/startmyinstance.json 
+#    --parameters  ParameterKey=KeyPairName,ParameterValue=MyKey ParameterKey=InstanceType,ParameterValue=t1.micro
+
+---
+AWSTemplateFormatVersion: '2010-09-09'
+
+Parameters: 
+  InstanceType: 
+    Description: "Enter t2.micro or m1.small. Default is t2.micro."
+    Type: "String"
+    Default: "t2.micro"
+    AllowedValues: 
+      - "t2.micro"
+      - "m1.small"
+  KeyName:
+    Description: "Enter an existing EC2 KeyPair. Default is MyEC2Key"
+    Type: "String"
+    Default: "MyEC2Key"
+
+# Mappings allow us to map a key to a corresponding set of named values
+# So if our instance is brought up in the eu-west-1 region we can use
+# AWS::Region to tell us the current zone and then use the intrinsic function
+# Fn::FindInMap to return the relevant matched value
+Mappings:
+  RegionMap:
+    eu-west-1:
+      AMI: "ami-bff32ccc"
+    ap-southeast-1:
+      AMI: "ami-dc9339bf" # My-Default-AMI
+    ap-southeast-2:
+      AMI: "ami-48d38c2b"
+    eu-central-1:
+      AMI: "ami-bc5b48d0"
+    ap-northeast-2:
+      AMI: "ami-249b554a"
+    ap-northeast-1:
+      AMI: "ami-383c1956"
+    us-east-1:
+      AMI: "ami-0b33d91d"
+    sa-east-1:
+      AMI: "ami-6817af04"
+    us-west-1:
+      AMI: "ami-d5ea86b5"
+    us-west-2:
+      AMI: "ami-f0091d91"
+
+Resources:
+  MyInstance:
+    Type: "AWS::EC2::Instance"
+    Properties:
+      KeyName:
+        Ref: "KeyName"
+      SecurityGroups:
+        - Ref: "InstanceSecurityGroup"
+      InstanceType:
+        Ref: "InstanceType"
+      ImageId:
+        Fn::FindInMap:
+          - "RegionMap"
+          - Ref: "AWS::Region"
+          - "AMI"
+      Monitoring: 'false'
+      UserData:
+        # Fn::Sub
+        # The intrinsic function Fn::Sub substitutes variables in an input string with values that you specify. In your templates, 
+        # you can use this function to construct commands or outputs that include values that aren't available until you create or update a stack.
+        # http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/intrinsic-function-reference-sub.html
+        #
+        # The cfn-signal helper script signals AWS CloudFormation to indicate whether Amazon EC2 instances have been successfully created 
+        # or updated. If you install and configure software applications on instances, you can signal AWS CloudFormation when those software 
+        # applications are ready.
+        # http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/cfn-signal.html
+        Fn::Base64: !Sub |
+          #!/bin/bash -xe
+          yum update -y aws-cfn-bootstrap
+          yum update -y
+          yum install httpd -y
+          service httpd start
+          chkconfig httpd on
+          echo "<html><h1>Hello Cloud Gurus!</h1></html>" > /var/www/html/index.html
+          /opt/aws/bin/cfn-signal -e 0 -r 'server setup complete' "${WaitHandle}"  >> /tmp/userdata.log
+
+  WaitHandle:
+    Type: "AWS::CloudFormation::WaitConditionHandle"
+
+  WaitCondition:
+    Type: "AWS::CloudFormation::WaitCondition"
+    DependsOn: "MyInstance"
+    Properties:
+      Handle: !Ref "WaitHandle"
+      Timeout: '200'
+
+  # We're allowing any ip address to access port 22 and 80,443
+  InstanceSecurityGroup:
+    Type: "AWS::EC2::SecurityGroup"
+    Properties:
+      GroupDescription: "Enable Access to HTTP/HTTPS and SSH access"
+      SecurityGroupIngress:
+          # Allow SSH Request
+        - IpProtocol: "tcp"
+          FromPort: "22"
+          ToPort: "22"
+          CidrIp: "0.0.0.0/0"
+          # Allow HTTP Request
+        - IpProtocol: 'tcp'
+          FromPort: '80'
+          ToPort: '80'
+          CidrIp: '0.0.0.0/0'
+          # Allow HTTPS Request
+        - IpProtocol: 'tcp'
+          FromPort: '443'
+          ToPort: '443'
+          CidrIp: '0.0.0.0/0'
+          # Allow Ping Request
+        - IpProtocol: 'icmp'
+          FromPort: '-1'
+          ToPort: '-1'
+          CidrIp: '0.0.0.0/0'
+
+Outputs:
+  WebsiteURL:
+    Description: "Our Website URL"
+    Value:
+      Fn::Join:
+        - ""
+        -
+          - "http://"
+          - Fn::GetAtt:
+              - "MyInstance"
+              - "PublicIp"
