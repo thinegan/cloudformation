@@ -95,7 +95,7 @@ Resources:
           service httpd start
           chkconfig httpd on
           echo "<html><h1>Hello Cloud Gurus!</h1></html>" > /var/www/html/index.html
-          /opt/aws/bin/cfn-signal -e 0 -r 'server setup complete' "${WaitHandle}"  >> /tmp/userdata.log
+          /opt/aws/bin/cfn-signal -e 0 -r 'server setup complete' "${WaitHandle}"  > /tmp/userdata.log
 
   WaitHandle:
     Type: "AWS::CloudFormation::WaitConditionHandle"
