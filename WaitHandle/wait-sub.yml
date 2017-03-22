@@ -102,6 +102,7 @@ Resources:
 
   WaitCondition:
     Type: "AWS::CloudFormation::WaitCondition"
+    # DependsOn - not required
     DependsOn: "MyInstance"
     Properties:
       Handle: !Ref "WaitHandle"
