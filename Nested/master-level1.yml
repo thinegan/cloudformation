@@ -18,7 +18,8 @@ Description: >
     - Autoscaling ( min-2, desired-2, max-3)
     - AutoHealing (Web Server)
     - Elastic Load Balancer
-    - Has Full Access to S3 and CloudWatch (logging)
+    - Has Full Access to S3 and CloudWatch
+    - CloudWatch AutoScaling Alarm and /var/log logging
     - Build Service with wait handle (cfg-signal)
 
 Resources:
@@ -53,6 +54,16 @@ Resources:
         ECSHostSecurityGroup: !GetAtt "SecurityGroup.Outputs.ECSHostSecurityGroup"
         LoadBalancer: !GetAtt "MyELB.Outputs.LoadBalancer"
         IamInstanceProfile: !GetAtt "MyRoleAccess.Outputs.InstanceProfile"
+
+  MyCloudWatch:
+    Type: "AWS::CloudFormation::Stack"
+    Properties:
+      TemplateURL: "https://s3-ap-southeast-1.amazonaws.com/cf-templates-19sg5y0d6d084-ap-southeast-1/nested-cloudwatch.yml"
+      TimeoutInMinutes: '5'
+      Parameters:
+        AutoScalingGroup: !GetAtt "MyAutoScaling.Outputs.AutoScalingGroupID"
+        WebServerScaleUpPolicy: !GetAtt "MyAutoScaling.Outputs.AutoScalingUpPolicy"
+        WebServerScaleDownPolicy: !GetAtt "MyAutoScaling.Outputs.AutoScalingDownPolicy"
 
 
 #Outputs:

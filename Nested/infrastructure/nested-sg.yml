@@ -32,14 +32,19 @@ Resources:
       VpcId: !Ref "VPCParameter"
       GroupDescription: "Access to the ECS hosts and the tasks/containers that run on them"
       SecurityGroupIngress:
-        - IpProtocol: 'tcp'
-          FromPort: '80'
-          ToPort: '80'
-          CidrIp: '0.0.0.0/0'
+        - CidrIp: "0.0.0.0/0"
+          FromPort: "22"
+          IpProtocol: "tcp"
+          ToPort: "22"
         - IpProtocol: 'tcp'
           FromPort: '443'
           ToPort: '443'
           CidrIp: '0.0.0.0/0'
+        - FromPort: "80"
+          IpProtocol: "tcp"
+          SourceSecurityGroupId:
+            Ref: "ELBSecurityGroup"
+          ToPort: "80"
       SecurityGroupEgress:
         - IpProtocol: '-1'
           CidrIp: '0.0.0.0/0'

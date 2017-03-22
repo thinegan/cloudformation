@@ -1,0 +1,81 @@
+# Note, this is a basic use of Cloudformation with disregard for Security Group Access
+# You should always update Security Group Access with your own IP Address to ensure your instances security.
+#
+# How to validate template
+# aws cloudformation validate-template --template-body file:////path//cloudformation//Nested//ec2-infra.yml
+---
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+    This template deploys CloudWatch Setup,
+    Scale-up if CPU > 80% for 5 minutes
+    Scale-down if CPU < 25% for 5 minutes
+
+
+Parameters: 
+
+  WebServerScaleUpPolicy:
+    Description: "A reference to the WebServerScaleUpPolicy"
+    Type: "String"
+
+  WebServerScaleDownPolicy:
+    Description: "A reference to the WebServerScaleDownPolicy"
+    Type: "String"
+
+  AutoScalingGroup:
+    Description: "A reference to the AutoScalingGroup"
+    Type: "String"
+
+
+Resources:
+
+  #  Alarm High Load
+  CPUAlarmHigh:
+    Type: "AWS::CloudWatch::Alarm"
+    Properties:
+      AlarmDescription: "Scale-up if CPU > 80% for 5 minutes"
+      MetricName: "CPUUtilization"
+      Namespace: "AWS/EC2"
+      Statistic: "Average"
+      Period: '300'
+      EvaluationPeriods: '1'
+      Threshold: '80'
+      AlarmActions:
+      - Ref: "WebServerScaleUpPolicy"
+      Dimensions:
+      - Name: "AutoScalingGroupName"
+        Value:
+          Ref: "AutoScalingGroup"
+      ComparisonOperator: "GreaterThanThreshold"
+
+  # Alarm Low Load
+  CPUAlarmLow:
+    Type: "AWS::CloudWatch::Alarm"
+    Properties:
+      AlarmDescription: "Scale-down if CPU < 25% for 5 minutes"
+      MetricName: "CPUUtilization"
+      Namespace: "AWS/EC2"
+      Statistic: "Average"
+      Period: '300'
+      EvaluationPeriods: '1'
+      Threshold: '25'
+      AlarmActions:
+      - Ref: "WebServerScaleDownPolicy"
+      Dimensions:
+      - Name: "AutoScalingGroupName"
+        Value:
+          Ref: "AutoScalingGroup"
+      ComparisonOperator: "GreaterThanThreshold"
+
+
+Outputs:
+
+  TrafficAlarmHigh: 
+    Description: "CloudWatch Reference AlarmHigh"
+    Value: !Ref "CPUAlarmHigh"
+
+  TrafficAlarmLow: 
+    Description: "CloudWatch Reference AlarmLow"
+    Value: !Ref "CPUAlarmLow"
+
+
+
