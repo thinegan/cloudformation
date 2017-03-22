@@ -89,11 +89,18 @@ Resources:
       UserData:
         Fn::Base64: !Sub |
           #!/bin/bash -xe
-          yum install httpd -y
+          yum install httpd php git awslogs python-pip aws-cfn-bootstrap -y
           yum update -y
           service httpd start
           chkconfig httpd on
+          echo "[plugins]
+          cwlogs = cwlogs
+          [default]
+          region = ${AWS::Region}" > /etc/awslogs/awscli.conf
+          sudo service awslogs start
+          sudo chkconfig awslogs on
           echo "<html><h1>Hello Cloud Gurus!</h1></html>" > /var/www/html/index.html
+          /opt/aws/bin/cfn-signal -e 0 -r 'server setup complete' "${WaitHandle}"  > /tmp/userdata.log
 
   # Auto Scaling Group Basic Setup
   AutoScalingGroup: 
@@ -134,6 +141,15 @@ Resources:
         Ref: "AutoScalingGroup"
       Cooldown: '300'
       ScalingAdjustment: '-1'
+
+  WaitHandle:
+    Type: "AWS::CloudFormation::WaitConditionHandle"
+
+  WaitCondition:
+    Type: "AWS::CloudFormation::WaitCondition"
+    Properties:
+      Handle: !Ref "WaitHandle"
+      Timeout: '300'
 
 
 Outputs:
