@@ -66,12 +66,12 @@ Resources:
         WebServerScaleDownPolicy: !GetAtt "MyAutoScaling.Outputs.AutoScalingDownPolicy"
 
 
-#Outputs:
-#  Webserver:
-#    Description: "Public IP address of the new EC2 instance"
-#    Value:
-#      Fn::Join:
-#        - ''
-#        - - "http://"
-#          - !GetAtt "MyInstance.Outputs.IP"
-#          - "/"
+Outputs:
+  Webserver:
+    Description: "Public IP address of the new EC2 instance"
+    Value:
+      Fn::Join:
+        - ''
+        - - "http://"
+          - !GetAtt "MyELB.Outputs.LoadBalancerUrl"
+          - "/"
