@@ -1,0 +1,66 @@
+# Note, this is a basic use of Cloudformation with disregard for Security Group Access
+# You should always update Security Group Access with your own IP Address to ensure your instances security.
+#
+# Requirement :
+# Create a 2 dev server
+# - Autoscaling ( min-2, desired-2, max-3)
+# - AutoHealing (Web Server)
+# - Elastic Load Balancer
+# - Has Full Access to S3 and CloudWatch (logging)
+# - Build Service with wait handle (cfg-signal)
+#
+---
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+    This template is a master to perform the nessesary task to
+    perform the following :
+    - Create a 2 dev server
+    - Autoscaling ( min-2, desired-2, max-3)
+    - AutoHealing (Web Server)
+    - Elastic Load Balancer
+    - Has Full Access to S3 and CloudWatch (logging)
+    - Build Service with wait handle (cfg-signal)
+
+Resources:
+  MyRoleAccess:
+    Type: "AWS::CloudFormation::Stack"
+    Properties:
+      TemplateURL: "https://s3-ap-southeast-1.amazonaws.com/cf-templates-19sg5y0d6d084-ap-southeast-1/nested-s3sw-role.yml"
+      TimeoutInMinutes: '5'
+
+  SecurityGroup:
+    Type: "AWS::CloudFormation::Stack"
+    Properties:
+      TemplateURL: "https://s3-ap-southeast-1.amazonaws.com/cf-templates-19sg5y0d6d084-ap-southeast-1/nested-sg.yml"
+      TimeoutInMinutes: '5'
+      Parameters:
+        EnvironmentName: !Ref "AWS::StackName"
+
+  MyELB:
+    Type: "AWS::CloudFormation::Stack"
+    Properties:
+      TemplateURL: "https://s3-ap-southeast-1.amazonaws.com/cf-templates-19sg5y0d6d084-ap-southeast-1/nested-elb.yml"
+      TimeoutInMinutes: '5'
+      Parameters:
+        ELBSecurityGroup: !GetAtt "SecurityGroup.Outputs.ELBSecurityGroup"
+
+  MyAutoScaling:
+    Type: "AWS::CloudFormation::Stack"
+    Properties:
+      TemplateURL: "https://s3-ap-southeast-1.amazonaws.com/cf-templates-19sg5y0d6d084-ap-southeast-1/nested-autoscaling.yml"
+      TimeoutInMinutes: '5'
+      Parameters:
+        ECSHostSecurityGroup: !GetAtt "SecurityGroup.Outputs.ECSHostSecurityGroup"
+        LoadBalancer: !GetAtt "MyELB.Outputs.LoadBalancer"
+        IamInstanceProfile: !GetAtt "MyRoleAccess.Outputs.InstanceProfile"
+
+
+#Outputs:
+#  Webserver:
+#    Description: "Public IP address of the new EC2 instance"
+#    Value:
+#      Fn::Join:
+#        - ''
+#        - - "http://"
+#          - !GetAtt "MyInstance.Outputs.IP"
+#          - "/"

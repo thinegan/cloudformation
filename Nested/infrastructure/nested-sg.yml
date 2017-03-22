@@ -1,0 +1,79 @@
+# Note, this is a basic use of Cloudformation with disregard for Security Group Access
+# You should always update Security Group Access with your own IP Address to ensure your instances security.
+#
+# How to validate template
+# aws cloudformation validate-template --template-body file:////path//cloudformation//Nested//security-group.yml
+---
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+    This template contains the security groups required by our entire stack.
+    We create them in a seperate nested template, so they can be referenced
+    by all of the other nested templates.
+
+Parameters:
+
+  VPCParameter:
+    Default: 'vpc-4c3fc128'
+    Description: "VPC to launch instances into"
+    Type: "AWS::EC2::VPC::Id"
+
+  EnvironmentName:
+    Default: "dev"
+    Description: "An environment name that will be prefixed to resource names"
+    Type: "String"
+
+Resources:
+  # This security group defines who/where is allowed to access the ECS hosts directly.
+  # By default we're just allowing access from the load balancer.  If you want to SSH 
+  # into the hosts, or expose non-load balanced services you can open their ports here.
+  ECSHostSecurityGroup:
+    Type: "AWS::EC2::SecurityGroup"
+    Properties: 
+      VpcId: !Ref "VPCParameter"
+      GroupDescription: "Access to the ECS hosts and the tasks/containers that run on them"
+      SecurityGroupIngress:
+        - IpProtocol: 'tcp'
+          FromPort: '80'
+          ToPort: '80'
+          CidrIp: '0.0.0.0/0'
+        - IpProtocol: 'tcp'
+          FromPort: '443'
+          ToPort: '443'
+          CidrIp: '0.0.0.0/0'
+      SecurityGroupEgress:
+        - IpProtocol: '-1'
+          CidrIp: '0.0.0.0/0'
+      Tags:
+        - Key: "Name"
+          Value: !Sub "${EnvironmentName}-ECS-Hosts"
+
+  ELBSecurityGroup:
+    Type: "AWS::EC2::SecurityGroup"
+    Properties:
+      GroupDescription: "ELB-SG"
+      SecurityGroupEgress:
+      - IpProtocol: "-1"
+        CidrIp: "0.0.0.0/0"
+      SecurityGroupIngress:
+      - CidrIp: "0.0.0.0/0"
+        FromPort: "80"
+        IpProtocol: "tcp"
+        ToPort: "80"
+      VpcId:
+        Ref: "VPCParameter"
+      Tags:
+        - Key: "Name"
+          Value: !Sub "${EnvironmentName}-ELBSecurityGroup"
+
+Outputs:
+
+  ECSHostSecurityGroup: 
+    Description: "A reference to the security group for ECS hosts"
+    Value: !Ref "ECSHostSecurityGroup"
+
+  ELBSecurityGroup: 
+    Description: "A reference to the security group for ELB"
+    Value: !Ref "ELBSecurityGroup"
+
+
+

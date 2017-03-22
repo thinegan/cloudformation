@@ -1,0 +1,62 @@
+# Note, this is a basic use of Cloudformation with disregard for Security Group Access
+# You should always update Security Group Access with your own IP Address to ensure your instances security.
+#
+# How to validate template
+# aws cloudformation validate-template --template-body file:////path//cloudformation//Nested//ec2-infra.yml
+---
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+    This template deploys an ECS cluster to the provided VPC and subnets
+
+Parameters: 
+
+  ELBSecurityGroup:
+    Description: "Select the Security Group to use for the ELB"
+    Type: "AWS::EC2::SecurityGroup::Id"
+
+  SubnetsParameter:
+    Description: "Subnets to launch instances into"
+    Type: "List<AWS::EC2::Subnet::Id>"
+    Default: "subnet-e47ed292, subnet-604dff04"
+
+
+Resources:
+
+  LoadBalancer:
+    Type: "AWS::ElasticLoadBalancing::LoadBalancer"
+    Properties:
+      ConnectionDrainingPolicy:
+        Enabled: "true"
+        Timeout: "30"
+      CrossZone: "true"
+      HealthCheck:
+        HealthyThreshold: '4'
+        Interval: '30'
+        Target: "HTTP:80/"
+        Timeout: '5'
+        UnhealthyThreshold: '6'
+      LoadBalancerName: "MyELB"
+      Listeners:
+      - InstancePort: '80'
+        InstanceProtocol: "HTTP"
+        LoadBalancerPort: '80'
+        Protocol: "HTTP"
+      Scheme: "internet-facing"
+      SecurityGroups:
+      - Ref: "ELBSecurityGroup"
+      Subnets:
+        Ref: "SubnetsParameter"
+
+# Output LoadBalancer
+Outputs:
+  LoadBalancer:
+    Description: "A reference to the Application Load Balancer"
+    Value: !Ref "LoadBalancer"
+
+  LoadBalancerUrl:
+    Description: "The URL of the ALB"
+    Value: !GetAtt "LoadBalancer.DNSName"
+
+
+
+
