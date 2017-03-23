@@ -14,10 +14,9 @@ Parameters:
     Description: "Select the Security Group to use for the ELB"
     Type: "AWS::EC2::SecurityGroup::Id"
 
-  SubnetsParameter:
+  PublicSubnetsParameter:
     Description: "Subnets to launch instances into"
     Type: "List<AWS::EC2::Subnet::Id>"
-    Default: "subnet-e47ed292, subnet-604dff04"
 
 
 Resources:
@@ -45,7 +44,7 @@ Resources:
       SecurityGroups:
       - Ref: "ELBSecurityGroup"
       Subnets:
-        Ref: "SubnetsParameter"
+        Ref: "PublicSubnetsParameter"
 
 # Output LoadBalancer
 Outputs:

@@ -24,10 +24,9 @@ Parameters:
       - "t2.micro"
       - "m1.small"
 
-  SubnetsParameter:
+  PublicSubnetsParameter:
     Description: "Subnets to launch instances into"
     Type: "List<AWS::EC2::Subnet::Id>"
-    Default: "subnet-e47ed292, subnet-604dff04"
 
   ECSHostSecurityGroup:
     Description: "Select the Security Group to use for the EC2 hosts"
@@ -102,6 +101,7 @@ Resources:
           echo "<html><h1>Hello Cloud Gurus!</h1></html>" > /var/www/html/index.html
           /opt/aws/bin/cfn-signal -e 0 -r 'server setup complete' "${WaitHandle}"  > /tmp/userdata.log
 
+
   # Auto Scaling Group Basic Setup
   AutoScalingGroup: 
     Type: "AWS::AutoScaling::AutoScalingGroup"
@@ -112,7 +112,7 @@ Resources:
       LaunchConfigurationName:
         Ref: "LaunchConfiguration"
       VPCZoneIdentifier:
-        Ref: "SubnetsParameter"
+        Ref: "PublicSubnetsParameter"
       LoadBalancerNames:
       - Ref: "LoadBalancer"
       HealthCheckGracePeriod: "300"
@@ -149,7 +149,7 @@ Resources:
     Type: "AWS::CloudFormation::WaitCondition"
     Properties:
       Handle: !Ref "WaitHandle"
-      Timeout: '300'
+      Timeout: '600'
 
 
 Outputs:

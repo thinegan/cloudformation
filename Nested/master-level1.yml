@@ -23,11 +23,25 @@ Description: >
     - Build Service with wait handle (cfg-signal)
 
 Resources:
+
   MyRoleAccess:
     Type: "AWS::CloudFormation::Stack"
     Properties:
       TemplateURL: "https://s3-ap-southeast-1.amazonaws.com/cf-templates-19sg5y0d6d084-ap-southeast-1/nested-s3sw-role.yml"
       TimeoutInMinutes: '5'
+
+  MyVPC:
+    Type: "AWS::CloudFormation::Stack"
+    Properties:
+      TemplateURL: "https://s3-ap-southeast-1.amazonaws.com/cf-templates-19sg5y0d6d084-ap-southeast-1/nested-vpc.yml"
+      TimeoutInMinutes: '5'
+      Parameters:
+        VpcCIDR: "10.0.0.0/16"
+        PublicSubnet1CIDR: "10.0.1.0/24"
+        PublicSubnet2CIDR: "10.0.2.0/24"
+        PrivateSubnet1CIDR: "10.0.3.0/24"
+        PrivateSubnet2CIDR: "10.0.4.0/24"
+        FlowLogRole: !GetAtt "MyRoleAccess.Outputs.VPCFlowLogRoleArn"
 
   SecurityGroup:
     Type: "AWS::CloudFormation::Stack"
@@ -36,6 +50,9 @@ Resources:
       TimeoutInMinutes: '5'
       Parameters:
         EnvironmentName: !Ref "AWS::StackName"
+        VPCParameter: !GetAtt "MyVPC.Outputs.VPC"
+        PublicSubnet1Parameter: !GetAtt "MyVPC.Outputs.PublicSubnet1"
+        PublicSubnet2Parameter: !GetAtt "MyVPC.Outputs.PublicSubnet2"
 
   MyELB:
     Type: "AWS::CloudFormation::Stack"
@@ -44,6 +61,7 @@ Resources:
       TimeoutInMinutes: '5'
       Parameters:
         ELBSecurityGroup: !GetAtt "SecurityGroup.Outputs.ELBSecurityGroup"
+        PublicSubnetsParameter: !GetAtt "MyVPC.Outputs.PublicSubnets"
 
   MyAutoScaling:
     Type: "AWS::CloudFormation::Stack"
@@ -53,7 +71,9 @@ Resources:
       Parameters:
         ECSHostSecurityGroup: !GetAtt "SecurityGroup.Outputs.ECSHostSecurityGroup"
         LoadBalancer: !GetAtt "MyELB.Outputs.LoadBalancer"
-        IamInstanceProfile: !GetAtt "MyRoleAccess.Outputs.InstanceProfile"
+        IamInstanceProfile: !GetAtt "MyRoleAccess.Outputs.S3CWAccessInstanceProfile"
+        PublicSubnetsParameter: !GetAtt "MyVPC.Outputs.PublicSubnets"
+
 
   MyCloudWatch:
     Type: "AWS::CloudFormation::Stack"
