@@ -1,0 +1,41 @@
+# Note, this is a basic use of Cloudformation with disregard for Security Group Access
+# You should always update Security Group Access with your own IP Address to ensure your instances security.
+#
+# How to validate template
+# aws cloudformation validate-template --template-body file:////path//cloudformation//Nested//ec2-infra.yml
+---
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+    This template deploys S3 buckets
+
+Parameters: 
+
+  AccessControl:
+    Default: "Private"
+    Type: "String"
+    Description: "Default permissions for the bucket"
+    AllowedValues:
+    - "Private"
+    - "PublicRead"
+    - "PublicReadWrite"
+    - "AuthenticatedRead"
+    - "LogDeliveryWrite"
+    - "BucketOwnerRead"
+    - "BucketOwnerFullControl"
+
+Resources:
+
+  S3Backup:
+    Type: "AWS::S3::Bucket"
+    Properties:
+      AccessControl: !Ref "AccessControl"
+    DeletionPolicy: "Retain"
+
+Outputs:
+  S3Backup:
+    Description: "S3 Bucket Name"
+    Value: !Ref "S3Backup"
+
+
+
+

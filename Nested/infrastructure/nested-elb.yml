@@ -18,6 +18,10 @@ Parameters:
     Description: "Subnets to launch instances into"
     Type: "List<AWS::EC2::Subnet::Id>"
 
+  S3BackupBucket:
+    Description: "S3 Bucket Name"
+    Type: "String"
+
 
 Resources:
 
@@ -28,6 +32,11 @@ Resources:
         Enabled: "true"
         Timeout: "30"
       CrossZone: "true"
+      AccessLoggingPolicy:
+        EmitInterval: '5'
+        Enabled: 'True'
+        S3BucketName: !Ref "S3BackupBucket"
+        S3BucketPrefix: "ELBLogs"
       HealthCheck:
         HealthyThreshold: '4'
         Interval: '30'
