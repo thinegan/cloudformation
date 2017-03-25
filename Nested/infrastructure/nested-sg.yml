@@ -77,6 +77,26 @@ Resources:
         - Key: "Name"
           Value: !Sub "${EnvironmentName}-ELBSecurityGroup"
 
+  # Allow RDS connection from ECSHostSecurityGroup only.
+  RDSSecurityGroup:
+    Type: "AWS::EC2::SecurityGroup"
+    Properties:
+      GroupDescription: "Security group for RDS DB Instance."
+      SecurityGroupEgress:
+      - IpProtocol: "-1"
+        CidrIp: "0.0.0.0/0"
+      SecurityGroupIngress:
+      - FromPort: "3306"
+        IpProtocol: "tcp"
+        SourceSecurityGroupId:
+          Ref: "ECSHostSecurityGroup"
+        ToPort: "3306"
+      VpcId:
+        Ref: "VPCParameter"
+      Tags:
+        - Key: "Name"
+          Value: !Sub "${EnvironmentName}-RDSSecurityGroup"
+
 
 ####### Creation of the Network ACL #######
   MyNetworkACL:
@@ -261,9 +281,13 @@ Outputs:
     Description: "A reference to the security group for ECS hosts"
     Value: !Ref "ECSHostSecurityGroup"
 
-  ELBSecurityGroup: 
+  ELBSecurityGroup:
     Description: "A reference to the security group for ELB"
     Value: !Ref "ELBSecurityGroup"
+
+  EnvironmentName:
+    Description: "A reference to Environment Name"
+    Value: !Ref "EnvironmentName"
 
 
 
