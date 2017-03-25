@@ -31,6 +31,21 @@ Resources:
       AccessControl: !Ref "AccessControl"
     DeletionPolicy: "Retain"
 
+  BucketPolicy:
+    Type: "AWS::S3::BucketPolicy"
+    Properties:
+      Bucket: !Ref S3Backup
+      PolicyDocument:
+        Statement:
+          -
+            Action:
+              - "s3:PutObject"
+            Effect: 'Allow'
+            Resource: !Join ["", ["arn:aws:s3:::", !Ref S3Backup, "/*"]]
+            Principal:
+              AWS:
+                - "*"
+
 Outputs:
   S3Backup:
     Description: "S3 Bucket Name"

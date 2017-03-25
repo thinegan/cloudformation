@@ -155,6 +155,29 @@ Resources:
         - Key: "Name"
           Value: "webdmz"
 
+  # Backup Logs to S3 Bucket
+  S3Bucket:
+    Type: "AWS::S3::Bucket"
+    Properties:
+      AccessControl: "Private"
+    DeletionPolicy: "Retain"
+
+  BucketPolicy:
+    Type: "AWS::S3::BucketPolicy"
+    Properties:
+      Bucket: !Ref S3Bucket
+      PolicyDocument:
+        Statement:
+          -
+            Action:
+              - "s3:PutObject"
+            Effect: 'Allow'
+            Resource: !Join ["", ["arn:aws:s3:::", !Ref S3Bucket, "/*"]]
+            Principal:
+              AWS:
+                - "*"
+
+
   # My Basic Elastic Load Balancer
   MyLoadBalancer:
     Type: "AWS::ElasticLoadBalancing::LoadBalancer"
@@ -163,6 +186,11 @@ Resources:
         Fn::GetAZs:
           Ref: "AWS::Region"
       CrossZone: "true"
+      AccessLoggingPolicy:
+        EmitInterval: '5'
+        Enabled: 'True'
+        S3BucketName: !Ref "S3Bucket"
+        S3BucketPrefix: "ELBLogs"
       Instances:
       - Ref: "MyWebServer1"
       - Ref: "MyWebServer2"

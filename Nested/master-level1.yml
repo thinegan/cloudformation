@@ -70,6 +70,17 @@ Resources:
         PublicSubnetsParameter: !GetAtt "MyVPC.Outputs.PublicSubnets"
         S3BackupBucket: !GetAtt "MyS3Bucket.Outputs.S3Backup"
 
+  MyRDS:
+    Type: "AWS::CloudFormation::Stack"
+    Properties:
+      TemplateURL: "https://s3-ap-southeast-1.amazonaws.com/cf-templates-19sg5y0d6d084-ap-southeast-1/nested-rds.yml"
+      TimeoutInMinutes: '5'
+      Parameters:
+#        EnvironmentName: !Ref "AWS::StackName"
+        VPCParameter: !GetAtt "MyVPC.Outputs.VPC"
+        RDSSecurityGroup: !GetAtt "SecurityGroup.Outputs.RDSSecurityGroup"
+        PrivateSubnetsParameter: !GetAtt "MyVPC.Outputs.PrivateSubnets"
+
   MyAutoScaling:
     Type: "AWS::CloudFormation::Stack"
     Properties:

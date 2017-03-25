@@ -6,7 +6,7 @@
 ---
 AWSTemplateFormatVersion: "2010-09-09"
 Description: >
-    This template deploys S3 buckets
+    Database stack creation prerequisite:  first create a VPC stack.
 
 Parameters:
 
@@ -17,6 +17,10 @@ Parameters:
   PrivateSubnetsParameter:
     Description: "Subnets to launch instances into"
     Type: "List<AWS::EC2::Subnet::Id>"
+
+  RDSSecurityGroup:
+    Description: "Select the Security Group to use for the ELB"
+    Type: "AWS::EC2::SecurityGroup::Id"
 
   DatabaseUser:
     Default: "startupadmin"
@@ -109,7 +113,7 @@ Resources:
     Properties:
       DBSubnetGroupName: !Ref "DbSubnetGroup"
       VPCSecurityGroups:
-      - Ref: "myVPCSecurityGroup"
+      - Ref: "RDSSecurityGroup"
       Engine: !Ref "DatabaseEngine"
       DBName: !Ref "DatabaseName"
       MasterUsername: !Ref "DatabaseUser"

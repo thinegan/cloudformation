@@ -285,6 +285,10 @@ Outputs:
     Description: "A reference to the security group for ELB"
     Value: !Ref "ELBSecurityGroup"
 
+  RDSSecurityGroup: 
+    Description: "A reference to the security group for RDS"
+    Value: !Ref "RDSSecurityGroup"
+
   EnvironmentName:
     Description: "A reference to Environment Name"
     Value: !Ref "EnvironmentName"
