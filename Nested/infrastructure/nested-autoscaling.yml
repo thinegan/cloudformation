@@ -106,9 +106,9 @@ Resources:
   AutoScalingGroup: 
     Type: "AWS::AutoScaling::AutoScalingGroup"
     Properties: 
-      MinSize: '2'
+      MinSize: '1'
       MaxSize: '3'
-      DesiredCapacity: '2'
+      DesiredCapacity: '1'
       LaunchConfigurationName:
         Ref: "LaunchConfiguration"
       VPCZoneIdentifier:

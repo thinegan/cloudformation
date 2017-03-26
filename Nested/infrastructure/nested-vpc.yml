@@ -139,21 +139,13 @@ Resources:
         Value: "MyPublicRoute"
 
 ####### Creation of the Private Route Table #######
-  MyPrivateRouteTable1:
+  MyPrivateRouteTable:
     Type: "AWS::EC2::RouteTable"
     Properties:
       VpcId: !Ref "VPC"
       Tags:
       - Key: "Name"
-        Value: "MyPrivateRoute1"
-
-  MyPrivateRouteTable2:
-    Type: "AWS::EC2::RouteTable"
-    Properties:
-      VpcId: !Ref "VPC"
-      Tags:
-      - Key: "Name"
-        Value: "MyPrivateRoute2"
+        Value: "MyPrivateRoute"
 
 ####### Route-out Public Route Table to Internet Gateway (Internet connection)  #######
   MyPublicRouteIGW:
@@ -182,13 +174,13 @@ Resources:
     Type: "AWS::EC2::SubnetRouteTableAssociation"
     Properties:
       SubnetId: !Ref "PrivateSubnet1"
-      RouteTableId: !Ref "MyPrivateRouteTable1"
+      RouteTableId: !Ref "MyPrivateRouteTable"
 
   MyPrivateSubnet2RouteTableAssociation:
     Type: "AWS::EC2::SubnetRouteTableAssociation"
     Properties:
       SubnetId: !Ref "PrivateSubnet2"
-      RouteTableId: !Ref "MyPrivateRouteTable2"
+      RouteTableId: !Ref "MyPrivateRouteTable"
 
 ####### Creation of the Nat Gateway in Public Subnet #######
 ####### Allocate Elastic IP to Nat Gateway #######
@@ -209,19 +201,13 @@ Resources:
 #        - "AllocationId"       
 #      SubnetId: !Ref "PublicSubnet1"
 #
-#  PrivateRoute1:
+#  PrivateRoute:
 #    Type: "AWS::EC2::Route"
 #    Properties:
-#      RouteTableId: !Ref "MyPrivateRouteTable1"
+#      RouteTableId: !Ref "MyPrivateRouteTable"
 #      DestinationCidrBlock: "0.0.0.0/0"
 #      NatGatewayId: !Ref "MyNATGateway1"
 #
-#  PrivateRoute2:
-#    Type: "AWS::EC2::Route"
-#    Properties:
-#      RouteTableId: !Ref "MyPrivateRouteTable2"
-#      DestinationCidrBlock: "0.0.0.0/0"
-#      NatGatewayId: !Ref "MyNATGateway1"
 #
 ####### Stage 2 #######
 ####### Creation of the Network ACL #######
@@ -260,12 +246,15 @@ Resources:
       NetworkAclId: !Ref "MyNetworkACL"
 
 
-
 Outputs: 
 
   VPC: 
     Description: "A reference to the created VPC"
     Value: !Ref "VPC"
+
+  MyNetworkACL: 
+    Description: "A reference to the created VPC"
+    Value: !Ref "MyNetworkACL"
 
   PublicSubnets:
     Description: "A list of the public subnets"
@@ -290,6 +279,4 @@ Outputs:
   PrivateSubnet2: 
     Description: "A reference to the private subnet in the 2nd Availability Zone"
     Value: !Ref "PrivateSubnet2"
-
-
 

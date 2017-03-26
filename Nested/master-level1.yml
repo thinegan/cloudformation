@@ -57,6 +57,7 @@ Resources:
       Parameters:
         EnvironmentName: !Ref "AWS::StackName"
         VPCParameter: !GetAtt "MyVPC.Outputs.VPC"
+        NACLParameter: !GetAtt "MyVPC.Outputs.MyNetworkACL"
         PublicSubnet1Parameter: !GetAtt "MyVPC.Outputs.PublicSubnet1"
         PublicSubnet2Parameter: !GetAtt "MyVPC.Outputs.PublicSubnet2"
 
@@ -91,7 +92,6 @@ Resources:
         IamInstanceProfile: !GetAtt "MyRoleAccess.Outputs.S3CWAccessInstanceProfile"
         PublicSubnetsParameter: !GetAtt "MyVPC.Outputs.PublicSubnets"
 
-
   MyCloudWatch:
     Type: "AWS::CloudFormation::Stack"
     Properties:
@@ -112,3 +112,4 @@ Outputs:
         - - "http://"
           - !GetAtt "MyELB.Outputs.LoadBalancerUrl"
           - "/"
+
