@@ -13,6 +13,16 @@ Description: >
     
 Parameters: 
 
+  ServerEnvParameter:
+    Description: "Environment name, either dev or prod."
+    Type: "String"
+    MinLength: '1'
+    MaxLength: '255'
+    AllowedValues: 
+      - "dev"
+      - "prod"
+    ConstraintDescription: "Specify either 'dev' or 'prod'."
+
   VpcCIDR:
     Default: "10.0.0.0/16"
     Description: "Please enter the IP range (CIDR notation) for this VPC"
@@ -43,8 +53,12 @@ Parameters:
     Type: "String"
 
 
-Resources:
+####### Condition Setup #######
+Conditions: 
+  UseProdEnv: !Equals [ !Ref "ServerEnvParameter", "prod" ]
 
+
+Resources:
 ####### Stage 1 #######
 ####### Creation of the custom VPC #######
   VPC:
@@ -185,30 +199,33 @@ Resources:
 ####### Creation of the Nat Gateway in Public Subnet #######
 ####### Allocate Elastic IP to Nat Gateway #######
 ####### Target Private Route Table with Nat Gateway #######
-#  MyNATGateway1EIP:
-#    Type: "AWS::EC2::EIP"
-#    DependsOn: "GatewayToInternet"
-#    Properties:
-#      Domain: "VPC"
-#
-#  MyNATGateway1:
-#    DependsOn: "GatewayToInternet"
-#    Type: "AWS::EC2::NatGateway"
-#    Properties:
-#      AllocationId:
-#        Fn::GetAtt:
-#        - "MyNATGateway1EIP"
-#        - "AllocationId"       
-#      SubnetId: !Ref "PublicSubnet1"
-#
-#  PrivateRoute:
-#    Type: "AWS::EC2::Route"
-#    Properties:
-#      RouteTableId: !Ref "MyPrivateRouteTable"
-#      DestinationCidrBlock: "0.0.0.0/0"
-#      NatGatewayId: !Ref "MyNATGateway1"
-#
-#
+  MyNATGateway1EIP:
+    Type: "AWS::EC2::EIP"
+    Condition: "UseProdEnv"
+    DependsOn: "GatewayToInternet"
+    Properties:
+      Domain: "VPC"
+  
+  # Nat Gateway is a reliable network source, so you 1 is sufficient enough
+  MyNATGateway:
+    Type: "AWS::EC2::NatGateway"
+    Condition: "UseProdEnv"
+    DependsOn: "GatewayToInternet"
+    Properties:
+      AllocationId:
+        Fn::GetAtt:
+        - "MyNATGateway1EIP"
+        - "AllocationId"  
+      SubnetId: !Ref "PublicSubnet1"
+
+  MyNatPrivateRoute:
+    Type: "AWS::EC2::Route"
+    Condition: "UseProdEnv"
+    Properties:
+      RouteTableId: !Ref "MyPrivateRouteTable"
+      DestinationCidrBlock: "0.0.0.0/0"
+      NatGatewayId: !Ref "MyNATGateway"
+
 ####### Stage 2 #######
 ####### Creation of the Network ACL #######
   MyNetworkACL:

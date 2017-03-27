@@ -20,18 +20,15 @@ Parameters:
     Description: "Network ACL Id"
     Type: "String"
 
-  PublicSubnet1Parameter:
-    Description: "Subnets to launch instances into"
+  ServerEnvParameter:
+    Description: "Environment name, either dev or prod."
     Type: "String"
-
-  PublicSubnet2Parameter:
-    Description: "Subnets to launch instances into"
-    Type: "String"
-
-  EnvironmentName:
-    Default: "dev"
-    Description: "An environment name that will be prefixed to resource names"
-    Type: "String"
+    MinLength: '1'
+    MaxLength: '255'
+    AllowedValues: 
+      - "dev"
+      - "prod"
+    ConstraintDescription: "Specify either 'dev' or 'prod'."
 
 
 Resources:
@@ -62,7 +59,7 @@ Resources:
           CidrIp: '0.0.0.0/0'
       Tags:
         - Key: "Name"
-          Value: !Sub "${EnvironmentName}-ECS-Hosts"
+          Value: !Sub "${ServerEnvParameter}-ECSHostSecurityGroup"
 
   # WebServer Elastic Load Balancer
   ELBSecurityGroup:
@@ -85,7 +82,7 @@ Resources:
         Ref: "VPCParameter"
       Tags:
         - Key: "Name"
-          Value: !Sub "${EnvironmentName}-ELBSecurityGroup"
+          Value: !Sub "${ServerEnvParameter}-ELBSecurityGroup"
 
   # AppServer Security Group
   APPSecurityGroup:
@@ -108,7 +105,7 @@ Resources:
           CidrIp: '0.0.0.0/0'
       Tags:
         - Key: "Name"
-          Value: !Sub "${EnvironmentName}-ECS-Hosts"
+          Value: !Sub "${ServerEnvParameter}-APPSecurityGroup"
 
   # AppServer Elastic Load Balancer
   APPELBSecurityGroup:
@@ -124,15 +121,11 @@ Resources:
           SourceSecurityGroupId:
             Ref: "ECSHostSecurityGroup"
           ToPort: "9000"
-#      - CidrIp: "0.0.0.0/0"
-#        FromPort: "9000"
-#        IpProtocol: "tcp"
-#        ToPort: "9000"
       VpcId:
         Ref: "VPCParameter"
       Tags:
         - Key: "Name"
-          Value: !Sub "${EnvironmentName}-ELBSecurityGroup"
+          Value: !Sub "${ServerEnvParameter}-APPELBSecurityGroup"
 
   # Allow RDS connection from ECSHostSecurityGroup only.
   RDSSecurityGroup:
@@ -152,7 +145,7 @@ Resources:
         Ref: "VPCParameter"
       Tags:
         - Key: "Name"
-          Value: !Sub "${EnvironmentName}-RDSSecurityGroup"
+          Value: !Sub "${ServerEnvParameter}-RDSSecurityGroup"
 
 
 ####### INBOUND HTTP Network ACL RULES #######
@@ -329,7 +322,7 @@ Outputs:
 
   EnvironmentName:
     Description: "A reference to Environment Name"
-    Value: !Ref "EnvironmentName"
+    Value: !Ref "ServerEnvParameter"
 
 
 

@@ -88,9 +88,8 @@ Parameters:
       - "db.r3.2xlarge"
       - "db.r3.4xlarge"
       - "db.r3.8xlarge"
-      
-  EnvironmentName:
-    Default: "dev"
+
+  ServerEnvParameter:
     Description: "Environment name, either dev or prod."
     Type: "String"
     MinLength: '1'
@@ -98,12 +97,12 @@ Parameters:
     AllowedValues: 
       - "dev"
       - "prod"
-    ConstraintDescription: "Specify either dev or prod."
-    
+    ConstraintDescription: "Specify either 'dev' or 'prod'."
+
 
 Conditions: 
 
-  CreateProdEnv: !Equals [ !Ref "EnvironmentName", "prod" ]
+  CreateProdEnv: !Equals [ !Ref "ServerEnvParameter", "prod" ]
 
 
 Resources:

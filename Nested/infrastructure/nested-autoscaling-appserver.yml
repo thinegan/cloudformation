@@ -15,7 +15,6 @@ Parameters:
     Type: "String"
     Default: "MyEC2Key"
 
-# 	Value of property InstanceType must be of type String
   InstanceType: 
     Description: "Enter t2.micro or m1.small. Default is t2.micro."
     Type: "String"
@@ -25,6 +24,10 @@ Parameters:
       - "m1.small"
 
   PublicSubnetsParameter:
+    Description: "Subnets to launch instances into"
+    Type: "List<AWS::EC2::Subnet::Id>"
+
+  PrivateSubnetsParameter:
     Description: "Subnets to launch instances into"
     Type: "List<AWS::EC2::Subnet::Id>"
 
@@ -39,6 +42,16 @@ Parameters:
   IamInstanceProfile:
     Description: "A reference to the IamInstanceProfile"
     Type: "String"
+
+  ServerEnvParameter:
+    Description: "Environment name, either dev or prod."
+    Type: "String"
+    MinLength: '1'
+    MaxLength: '255'
+    AllowedValues: 
+      - "dev"
+      - "prod"
+    ConstraintDescription: "Specify either 'dev' or 'prod'."
 
 Mappings:
 
@@ -64,7 +77,11 @@ Mappings:
     us-west-2:
       AMI: "ami-f0091d91"
 
+####### Condition Setup #######
+Conditions: 
+  UseProdEnv: !Equals [ !Ref "ServerEnvParameter", "prod" ]
 
+####### Resources Setup #######
 Resources:
 
   # Auto Scaling Launch Configuration
@@ -134,8 +151,9 @@ Resources:
       DesiredCapacity: '1'
       LaunchConfigurationName:
         Ref: "LaunchConfiguration"
-      VPCZoneIdentifier:
-        Ref: "PublicSubnetsParameter"
+#      VPCZoneIdentifier:
+#        Ref: "PublicSubnetsParameter"
+      VPCZoneIdentifier: !If [ "UseProdEnv", !Ref "PrivateSubnetsParameter", !Ref "PublicSubnetsParameter" ]
       LoadBalancerNames:
       - Ref: "APPELBName"
       HealthCheckGracePeriod: "300"

@@ -22,6 +22,22 @@ Description: >
     - CloudWatch AutoScaling Alarm and /var/log logging
     - Build Service with wait handle (cfg-signal)
 
+Parameters: 
+
+  ServerEnvironment:
+    Default: "dev"
+    Description: "Environment name, either dev or prod."
+    Type: "String"
+    MinLength: '1'
+    MaxLength: '255'
+    AllowedValues: 
+      - "dev"
+      - "prod"
+    ConstraintDescription: "Specify either 'dev' or 'prod'."
+
+Conditions: 
+  UseProdEnv: !Equals [ !Ref "ServerEnvironment", "prod" ]
+
 Resources:
 
   MyRoleAccess:
@@ -42,6 +58,7 @@ Resources:
       TemplateURL: "https://s3-ap-southeast-1.amazonaws.com/cf-templates-19sg5y0d6d084-ap-southeast-1/nested-vpc.yml"
       TimeoutInMinutes: '5'
       Parameters:
+        ServerEnvParameter: !Ref "ServerEnvironment"
         VpcCIDR: "10.0.0.0/16"
         PublicSubnet1CIDR: "10.0.1.0/24"
         PublicSubnet2CIDR: "10.0.2.0/24"
@@ -55,11 +72,9 @@ Resources:
       TemplateURL: "https://s3-ap-southeast-1.amazonaws.com/cf-templates-19sg5y0d6d084-ap-southeast-1/nested-sg.yml"
       TimeoutInMinutes: '5'
       Parameters:
-        EnvironmentName: !Ref "AWS::StackName"
+        ServerEnvParameter: !Ref "ServerEnvironment"
         VPCParameter: !GetAtt "MyVPC.Outputs.VPC"
         NACLParameter: !GetAtt "MyVPC.Outputs.MyNetworkACL"
-        PublicSubnet1Parameter: !GetAtt "MyVPC.Outputs.PublicSubnet1"
-        PublicSubnet2Parameter: !GetAtt "MyVPC.Outputs.PublicSubnet2"
 
   MyAPPELB:
     Type: "AWS::CloudFormation::Stack"
@@ -67,9 +82,11 @@ Resources:
       TemplateURL: "https://s3-ap-southeast-1.amazonaws.com/cf-templates-19sg5y0d6d084-ap-southeast-1/nested-elb-appserver.yml"
       TimeoutInMinutes: '5'
       Parameters:
+        ServerEnvParameter: !Ref "ServerEnvironment"
         AppLoadbalancerSGId: !GetAtt "SecurityGroup.Outputs.APPELBSecurityGroup"
-        PublicSubnetsParameter: !GetAtt "MyVPC.Outputs.PublicSubnets"
         S3BackupBucket: !GetAtt "MyS3Bucket.Outputs.S3Backup"
+        PublicSubnetsParameter: !GetAtt "MyVPC.Outputs.PublicSubnets"
+        PrivateSubnetsParameter: !GetAtt "MyVPC.Outputs.PrivateSubnets"
 
   MyAPPAutoScaling:
     Type: "AWS::CloudFormation::Stack"
@@ -77,10 +94,12 @@ Resources:
       TemplateURL: "https://s3-ap-southeast-1.amazonaws.com/cf-templates-19sg5y0d6d084-ap-southeast-1/nested-autoscaling-appserver.yml"
       TimeoutInMinutes: '5'
       Parameters:
+        ServerEnvParameter: !Ref "ServerEnvironment"
         AppServerSGId : !GetAtt "SecurityGroup.Outputs.APPSecurityGroup"
         APPELBName: !GetAtt "MyAPPELB.Outputs.APPLoadBalancer"
         IamInstanceProfile: !GetAtt "MyRoleAccess.Outputs.S3CWAccessInstanceProfile"
         PublicSubnetsParameter: !GetAtt "MyVPC.Outputs.PublicSubnets"
+        PrivateSubnetsParameter: !GetAtt "MyVPC.Outputs.PrivateSubnets"
 
   MyELB:
     Type: "AWS::CloudFormation::Stack"
@@ -98,6 +117,7 @@ Resources:
       TemplateURL: "https://s3-ap-southeast-1.amazonaws.com/cf-templates-19sg5y0d6d084-ap-southeast-1/nested-rds.yml"
       TimeoutInMinutes: '5'
       Parameters:
+        ServerEnvParameter: !Ref "ServerEnvironment"
         VPCParameter: !GetAtt "MyVPC.Outputs.VPC"
         RDSSecurityGroup: !GetAtt "SecurityGroup.Outputs.RDSSecurityGroup"
         PrivateSubnetsParameter: !GetAtt "MyVPC.Outputs.PrivateSubnets"

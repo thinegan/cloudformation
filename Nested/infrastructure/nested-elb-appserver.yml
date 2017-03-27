@@ -18,11 +18,30 @@ Parameters:
     Description: "Subnets to launch instances into"
     Type: "List<AWS::EC2::Subnet::Id>"
 
+  PrivateSubnetsParameter:
+    Description: "Subnets to launch instances into"
+    Type: "List<AWS::EC2::Subnet::Id>"
+
   S3BackupBucket:
     Description: "S3 Bucket Name"
     Type: "String"
 
+  ServerEnvParameter:
+    Description: "Environment name, either dev or prod."
+    Type: "String"
+    MinLength: '1'
+    MaxLength: '255'
+    AllowedValues: 
+      - "dev"
+      - "prod"
+    ConstraintDescription: "Specify either 'dev' or 'prod'."
 
+####### Condition Setup #######
+Conditions: 
+  UseProdEnv: !Equals [ !Ref "ServerEnvParameter", "prod" ]
+
+
+####### Resources Setup #######
 Resources:
 
   APPLoadBalancer:
@@ -52,8 +71,7 @@ Resources:
       Scheme: "internal"
       SecurityGroups:
       - Ref: "AppLoadbalancerSGId"
-      Subnets:
-        Ref: "PublicSubnetsParameter"
+      Subnets: !If [ "UseProdEnv", !Ref "PrivateSubnetsParameter", !Ref "PublicSubnetsParameter" ]
 
 # Output LoadBalancer
 Outputs:
