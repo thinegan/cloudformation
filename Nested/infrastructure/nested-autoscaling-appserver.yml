@@ -126,7 +126,7 @@ Resources:
       Timeout: '600'
 
   # Auto Scaling Group Basic Setup
-  AutoScalingGroup: 
+  AppScalingGroup: 
     Type: "AWS::AutoScaling::AutoScalingGroup"
     Properties: 
       MinSize: '1'
@@ -151,7 +151,7 @@ Resources:
     Properties:
       AdjustmentType: "ChangeInCapacity"
       AutoScalingGroupName:
-        Ref: "AutoScalingGroup"
+        Ref: "AppScalingGroup"
       Cooldown: '300'
       ScalingAdjustment: '1'
 
@@ -161,22 +161,22 @@ Resources:
     Properties:
       AdjustmentType: "ChangeInCapacity"
       AutoScalingGroupName:
-        Ref: "AutoScalingGroup"
+        Ref: "AppScalingGroup"
       Cooldown: '300'
       ScalingAdjustment: '-1'
       
 
 Outputs:
 
-  AutoScalingGroupID: 
+  AppScalingGroup: 
     Description: "Auto Scaling Group Reference ID"
-    Value: !Ref "AutoScalingGroup"
+    Value: !Ref "AppScalingGroup"
 
-  AutoScalingUpPolicy: 
+  APPServerScaleUpPolicy: 
     Description: "Auto Scaling Up Policy Reference ID"
     Value: !Ref "APPServerScaleUpPolicy"
 
-  AutoScalingDownPolicy: 
+  APPServerScaleDownPolicy: 
     Description: "Auto Scaling Down Policy Reference ID"
     Value: !Ref "APPServerScaleDownPolicy"
 
