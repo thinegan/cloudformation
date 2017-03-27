@@ -61,6 +61,27 @@ Resources:
         PublicSubnet1Parameter: !GetAtt "MyVPC.Outputs.PublicSubnet1"
         PublicSubnet2Parameter: !GetAtt "MyVPC.Outputs.PublicSubnet2"
 
+  MyAPPELB:
+    Type: "AWS::CloudFormation::Stack"
+    Properties:
+      TemplateURL: "https://s3-ap-southeast-1.amazonaws.com/cf-templates-19sg5y0d6d084-ap-southeast-1/nested-elb-appserver.yml"
+      TimeoutInMinutes: '5'
+      Parameters:
+        AppLoadbalancerSGId: !GetAtt "SecurityGroup.Outputs.APPELBSecurityGroup"
+        PublicSubnetsParameter: !GetAtt "MyVPC.Outputs.PublicSubnets"
+        S3BackupBucket: !GetAtt "MyS3Bucket.Outputs.S3Backup"
+
+  MyAPPAutoScaling:
+    Type: "AWS::CloudFormation::Stack"
+    Properties:
+      TemplateURL: "https://s3-ap-southeast-1.amazonaws.com/cf-templates-19sg5y0d6d084-ap-southeast-1/nested-autoscaling-appserver.yml"
+      TimeoutInMinutes: '5'
+      Parameters:
+        AppServerSGId : !GetAtt "SecurityGroup.Outputs.APPSecurityGroup"
+        APPELBName: !GetAtt "MyAPPELB.Outputs.APPLoadBalancer"
+        IamInstanceProfile: !GetAtt "MyRoleAccess.Outputs.S3CWAccessInstanceProfile"
+        PublicSubnetsParameter: !GetAtt "MyVPC.Outputs.PublicSubnets"
+
   MyELB:
     Type: "AWS::CloudFormation::Stack"
     Properties:
@@ -91,25 +112,26 @@ Resources:
         LoadBalancer: !GetAtt "MyELB.Outputs.LoadBalancer"
         IamInstanceProfile: !GetAtt "MyRoleAccess.Outputs.S3CWAccessInstanceProfile"
         PublicSubnetsParameter: !GetAtt "MyVPC.Outputs.PublicSubnets"
+        APPELBUrl: !GetAtt "MyAPPELB.Outputs.APPLoadBalancerUrl"
 
-  MyCloudWatch:
-    Type: "AWS::CloudFormation::Stack"
-    Properties:
-      TemplateURL: "https://s3-ap-southeast-1.amazonaws.com/cf-templates-19sg5y0d6d084-ap-southeast-1/nested-cloudwatch.yml"
-      TimeoutInMinutes: '5'
-      Parameters:
-        AutoScalingGroup: !GetAtt "MyAutoScaling.Outputs.AutoScalingGroupID"
-        WebServerScaleUpPolicy: !GetAtt "MyAutoScaling.Outputs.AutoScalingUpPolicy"
-        WebServerScaleDownPolicy: !GetAtt "MyAutoScaling.Outputs.AutoScalingDownPolicy"
+#  MyCloudWatch:
+#    Type: "AWS::CloudFormation::Stack"
+#    Properties:
+#      TemplateURL: "https://s3-ap-southeast-1.amazonaws.com/cf-templates-19sg5y0d6d084-ap-southeast-1/nested-cloudwatch.yml"
+#      TimeoutInMinutes: '5'
+#      Parameters:
+#        AutoScalingGroup: !GetAtt "MyAutoScaling.Outputs.AutoScalingGroupID"
+#        WebServerScaleUpPolicy: !GetAtt "MyAutoScaling.Outputs.AutoScalingUpPolicy"
+#        WebServerScaleDownPolicy: !GetAtt "MyAutoScaling.Outputs.AutoScalingDownPolicy"
 
 
-Outputs:
-  Webserver:
-    Description: "Public IP address of the new EC2 instance"
-    Value:
-      Fn::Join:
-        - ''
-        - - "http://"
-          - !GetAtt "MyELB.Outputs.LoadBalancerUrl"
-          - "/"
+#Outputs:
+#  Webserver:
+#    Description: "Public IP address of the new EC2 instance"
+#    Value:
+#      Fn::Join:
+#        - ''
+#        - - "http://"
+#          - !GetAtt "MyELB.Outputs.LoadBalancerUrl"
+#          - "/"
 

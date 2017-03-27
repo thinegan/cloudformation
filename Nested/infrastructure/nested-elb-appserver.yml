@@ -1,0 +1,70 @@
+# Note, this is a basic use of Cloudformation with disregard for Security Group Access
+# You should always update Security Group Access with your own IP Address to ensure your instances security.
+#
+# How to validate template
+# aws cloudformation validate-template --template-body file:////path//cloudformation//Nested//ec2-infra.yml
+---
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+    This template deploys an ECS cluster to the provided VPC and subnets
+
+Parameters: 
+
+  AppLoadbalancerSGId:
+    Description: "Select the Security Group to use for the ELB"
+    Type: "AWS::EC2::SecurityGroup::Id"
+
+  PublicSubnetsParameter:
+    Description: "Subnets to launch instances into"
+    Type: "List<AWS::EC2::Subnet::Id>"
+
+  S3BackupBucket:
+    Description: "S3 Bucket Name"
+    Type: "String"
+
+
+Resources:
+
+  APPLoadBalancer:
+    Type: "AWS::ElasticLoadBalancing::LoadBalancer"
+    Properties:
+      ConnectionDrainingPolicy:
+        Enabled: "true"
+        Timeout: "30"
+      CrossZone: "true"
+      AccessLoggingPolicy:
+        EmitInterval: '5'
+        Enabled: 'True'
+        S3BucketName: !Ref "S3BackupBucket"
+        S3BucketPrefix: "APPELBLogs"
+      HealthCheck:
+        HealthyThreshold: '4'
+        Interval: '30'
+        Target: "TCP:9000"
+        Timeout: '5'
+        UnhealthyThreshold: '6'
+      LoadBalancerName: "MyAPPELB"
+      Listeners:
+      - InstancePort: '9000'
+        InstanceProtocol: "TCP"
+        LoadBalancerPort: '9000'
+        Protocol: "TCP"
+      Scheme: "internal"
+      SecurityGroups:
+      - Ref: "AppLoadbalancerSGId"
+      Subnets:
+        Ref: "PublicSubnetsParameter"
+
+# Output LoadBalancer
+Outputs:
+  APPLoadBalancer:
+    Description: "A reference to the Application Load Balancer"
+    Value: !Ref "APPLoadBalancer"
+
+  APPLoadBalancerUrl:
+    Description: "The URL of the ALB"
+    Value: !GetAtt "APPLoadBalancer.DNSName"
+
+
+
+

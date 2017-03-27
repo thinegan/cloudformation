@@ -42,7 +42,7 @@ Resources:
     Type: "AWS::EC2::SecurityGroup"
     Properties: 
       VpcId: !Ref "VPCParameter"
-      GroupDescription: "Access to the ECS hosts and the tasks/containers that run on them"
+      GroupDescription: "Web Server Security Group"
       SecurityGroupIngress:
         - CidrIp: "0.0.0.0/0"
           FromPort: "22"
@@ -64,6 +64,7 @@ Resources:
         - Key: "Name"
           Value: !Sub "${EnvironmentName}-ECS-Hosts"
 
+  # WebServer Elastic Load Balancer
   ELBSecurityGroup:
     Type: "AWS::EC2::SecurityGroup"
     Properties:
@@ -72,10 +73,61 @@ Resources:
       - IpProtocol: "-1"
         CidrIp: "0.0.0.0/0"
       SecurityGroupIngress:
+      - IpProtocol: 'icmp'
+        FromPort: '-1'
+        ToPort: '-1'
+        CidrIp: '0.0.0.0/0'
       - CidrIp: "0.0.0.0/0"
         FromPort: "80"
         IpProtocol: "tcp"
         ToPort: "80"
+      VpcId:
+        Ref: "VPCParameter"
+      Tags:
+        - Key: "Name"
+          Value: !Sub "${EnvironmentName}-ELBSecurityGroup"
+
+  # AppServer Security Group
+  APPSecurityGroup:
+    Type: "AWS::EC2::SecurityGroup"
+    Properties: 
+      VpcId: !Ref "VPCParameter"
+      GroupDescription: "Application Server Security Group"
+      SecurityGroupIngress:
+        - CidrIp: "0.0.0.0/0"
+          FromPort: "22"
+          IpProtocol: "tcp"
+          ToPort: "22"
+        - FromPort: "9000"
+          IpProtocol: "tcp"
+          SourceSecurityGroupId:
+            Ref: "APPELBSecurityGroup"
+          ToPort: "9000"
+      SecurityGroupEgress:
+        - IpProtocol: '-1'
+          CidrIp: '0.0.0.0/0'
+      Tags:
+        - Key: "Name"
+          Value: !Sub "${EnvironmentName}-ECS-Hosts"
+
+  # AppServer Elastic Load Balancer
+  APPELBSecurityGroup:
+    Type: "AWS::EC2::SecurityGroup"
+    Properties:
+      GroupDescription: "ELB-APP"
+      SecurityGroupEgress:
+      - IpProtocol: "-1"
+        CidrIp: "0.0.0.0/0"
+      SecurityGroupIngress:
+        - FromPort: "9000"
+          IpProtocol: "tcp"
+          SourceSecurityGroupId:
+            Ref: "ECSHostSecurityGroup"
+          ToPort: "9000"
+#      - CidrIp: "0.0.0.0/0"
+#        FromPort: "9000"
+#        IpProtocol: "tcp"
+#        ToPort: "9000"
       VpcId:
         Ref: "VPCParameter"
       Tags:
@@ -262,6 +314,14 @@ Outputs:
   ELBSecurityGroup:
     Description: "A reference to the security group for ELB"
     Value: !Ref "ELBSecurityGroup"
+
+  APPSecurityGroup: 
+    Description: "A reference to the security group for ECS hosts"
+    Value: !Ref "APPSecurityGroup"
+
+  APPELBSecurityGroup:
+    Description: "A reference to the security group for ELB"
+    Value: !Ref "APPELBSecurityGroup"
 
   RDSSecurityGroup: 
     Description: "A reference to the security group for RDS"
