@@ -25,7 +25,7 @@ Description: >
 Parameters: 
 
   ServerEnvironment:
-    Default: "dev"
+    Default: "prod"
     Description: "Environment name, either dev or prod."
     Type: "String"
     MinLength: '1'

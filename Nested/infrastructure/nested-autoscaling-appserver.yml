@@ -146,13 +146,11 @@ Resources:
   AppScalingGroup: 
     Type: "AWS::AutoScaling::AutoScalingGroup"
     Properties: 
-      MinSize: '1'
+      MinSize: '2'
       MaxSize: '3'
-      DesiredCapacity: '1'
+      DesiredCapacity: '2'
       LaunchConfigurationName:
         Ref: "LaunchConfiguration"
-#      VPCZoneIdentifier:
-#        Ref: "PublicSubnetsParameter"
       VPCZoneIdentifier: !If [ "UseProdEnv", !Ref "PrivateSubnetsParameter", !Ref "PublicSubnetsParameter" ]
       LoadBalancerNames:
       - Ref: "APPELBName"
