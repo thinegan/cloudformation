@@ -23,33 +23,83 @@ Parameters:
     - "BucketOwnerRead"
     - "BucketOwnerFullControl"
 
+
 Resources:
 
   S3Backup:
     Type: "AWS::S3::Bucket"
     Properties:
       AccessControl: !Ref "AccessControl"
+      VersioningConfiguration:
+        Status: "Enabled"
+      LifecycleConfiguration:
+        Rules:
+        - Id: "MyBackupArchive"
+          Status: "Enabled"
+          ExpirationInDays: '365' # Complete Disposal/Deletion of Data after 1 year
+          Transition:
+            TransitionInDays: '30' # Move Data from S3 bucket to Infrequent Archive after 30 days.
+            StorageClass: "STANDARD_IA"
     DeletionPolicy: "Retain"
 
   BucketPolicy:
     Type: "AWS::S3::BucketPolicy"
     Properties:
-      Bucket: !Ref S3Backup
+      Bucket: !Ref "S3Backup"
+      PolicyDocument:
+        Statement:
+        - Sid: "DenyUnEncryptedObjectUploads"
+          Effect: "Deny"
+          Principal:
+            AWS: "*"
+          Action: "s3:PutObject"
+          Resource: !Join ["", ["arn:aws:s3:::", !Ref "S3Backup", "/*"]]
+          Condition:
+            StringNotEquals:
+              s3:x-amz-server-side-encryption: "AES256"
+
+  # https://forums.aws.amazon.com/thread.jspa?threadID=221113
+  # Note : at this time ELB logging does not support server side encryption
+  S3Logging:
+    Type: "AWS::S3::Bucket"
+    Properties:
+      AccessControl: !Ref "AccessControl"
+      VersioningConfiguration:
+        Status: "Enabled"
+      LifecycleConfiguration:
+        Rules:
+        - Id: "MyLoggingArchive"
+          Status: "Enabled"
+          ExpirationInDays: '365' # Complete Disposal/Deletion of Data after 1 year
+          Transition:
+            TransitionInDays: '30' # Move Data from S3 bucket to Infrequent Archive after 30 days.
+            StorageClass: "STANDARD_IA"
+    DeletionPolicy: "Retain"
+
+  BucketPolicy:
+    Type: "AWS::S3::BucketPolicy"
+    Properties:
+      Bucket: !Ref "S3Logging"
       PolicyDocument:
         Statement:
           -
             Action:
               - "s3:PutObject"
             Effect: 'Allow'
-            Resource: !Join ["", ["arn:aws:s3:::", !Ref S3Backup, "/*"]]
+            Resource: !Join ["", ["arn:aws:s3:::", !Ref "S3Logging", "/*"]]
             Principal:
               AWS:
                 - "*"
 
+
 Outputs:
   S3Backup:
-    Description: "S3 Bucket Name"
+    Description: "S3 Backup Bucket Name"
     Value: !Ref "S3Backup"
+
+  S3Logging:
+    Description: "S3 Logging Bucket Name"
+    Value: !Ref "S3Logging"
 
 
 

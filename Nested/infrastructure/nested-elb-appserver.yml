@@ -23,7 +23,11 @@ Parameters:
     Type: "List<AWS::EC2::Subnet::Id>"
 
   S3BackupBucket:
-    Description: "S3 Bucket Name"
+    Description: "S3 Backup Bucket Name"
+    Type: "String"
+
+  S3LoggingBucket:
+    Description: "S3 Logging Bucket Name"
     Type: "String"
 
   ServerEnvParameter:
@@ -54,7 +58,7 @@ Resources:
       AccessLoggingPolicy:
         EmitInterval: '5'
         Enabled: 'True'
-        S3BucketName: !Ref "S3BackupBucket"
+        S3BucketName: !Ref "S3LoggingBucket"
         S3BucketPrefix: "APPELBLogs"
       HealthCheck:
         HealthyThreshold: '4'

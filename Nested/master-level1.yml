@@ -85,6 +85,7 @@ Resources:
         ServerEnvParameter: !Ref "ServerEnvironment"
         AppLoadbalancerSGId: !GetAtt "SecurityGroup.Outputs.APPELBSecurityGroup"
         S3BackupBucket: !GetAtt "MyS3Bucket.Outputs.S3Backup"
+        S3LoggingBucket: !GetAtt "MyS3Bucket.Outputs.S3Logging"
         PublicSubnetsParameter: !GetAtt "MyVPC.Outputs.PublicSubnets"
         PrivateSubnetsParameter: !GetAtt "MyVPC.Outputs.PrivateSubnets"
 
@@ -110,6 +111,7 @@ Resources:
         ELBSecurityGroup: !GetAtt "SecurityGroup.Outputs.ELBSecurityGroup"
         PublicSubnetsParameter: !GetAtt "MyVPC.Outputs.PublicSubnets"
         S3BackupBucket: !GetAtt "MyS3Bucket.Outputs.S3Backup"
+        S3LoggingBucket: !GetAtt "MyS3Bucket.Outputs.S3Logging"
 
   MyRDS:
     Type: "AWS::CloudFormation::Stack"
