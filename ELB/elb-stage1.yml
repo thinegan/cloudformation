@@ -33,6 +33,12 @@ Parameters:
     Type: "String"
     Default: "MyEC2Key"
 
+  # Timeclone.com
+  Domain1CertARN:
+    Default: "arn:aws:acm:ap-southeast-1:370888776060:certificate/29a917de-3402-46fb-8e0b-c164a26277d4"
+    Description: "ARN for my domain name"
+    Type: "String"
+
 # Mappings allow us to map a key to a corresponding set of named values
 # So if our instance is brought up in the eu-west-1 region we can use
 # AWS::Region to tell us the current zone and then use the intrinsic function
@@ -198,12 +204,58 @@ Resources:
       - LoadBalancerPort: '80'
         InstancePort: '80'
         Protocol: "HTTP"
+      - LoadBalancerPort: '443'
+        InstancePort: '80'
+        Protocol: "HTTPS"
+        SSLCertificateId: !Ref "Domain1CertARN"
+        PolicyNames:
+        - "MyOwnSSLNegotiationPolicy"
+      # List aws elb describe-load-balancer-policies
+      Policies:
+      - PolicyName: "MyOwnSSLNegotiationPolicy"
+        PolicyType: "SSLNegotiationPolicyType"
+        Attributes:
+        - Name: "Server-Defined-Cipher-Order"
+          Value: 'true'
+        - Name: "Protocol-TLSv1"
+          Value: 'false'
+        - Name: "Protocol-TLSv1.1"
+          Value: 'false'
+        - Name: "Protocol-TLSv1.2"
+          Value: 'true'
+        - Name: "Protocol-SSLv3"
+          Value: 'false'
+        - Name: "ECDHE-ECDSA-AES128-GCM-SHA256"
+          Value: 'true'
+        - Name: "ECDHE-ECDSA-AES128-GCM-SHA256"
+          Value: 'true'
+        - Name: "ECDHE-ECDSA-AES128-SHA256"
+          Value: 'true'
+        - Name: "ECDHE-RSA-AES128-SHA256"
+          Value: 'true'
+        - Name: "ECDHE-ECDSA-AES256-GCM-SHA384"
+          Value: 'true'
+        - Name: "ECDHE-RSA-AES256-GCM-SHA384"
+          Value: 'true'
+        - Name: "ECDHE-ECDSA-AES256-SHA384"
+          Value: 'true'
+        - Name: "ECDHE-RSA-AES256-SHA384"
+          Value: 'true'
+        - Name: "AES128-GCM-SHA256"
+          Value: 'true'
+        - Name: "AES128-SHA256"
+          Value: 'true'
+        - Name: "AES256-GCM-SHA384"
+          Value: 'true'
+        - Name: "AES256-SHA256"
+          Value: 'true'
       HealthCheck:
         Target: "HTTP:80/"
         HealthyThreshold: '4'
         UnhealthyThreshold: '6'
         Interval: '30'
         Timeout: '5'
+
 
 # Output Server dns name and publicIP
 Outputs:
