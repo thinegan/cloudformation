@@ -26,6 +26,12 @@ Parameters:
     Description: "S3 Logging Bucket Name"
     Type: "String"
 
+  # Existing Domain Name: Timeclone.com
+  # Assuming you have already upload to AWS Certificate Manager
+  Domain1CertARN:
+    Default: "arn:aws:acm:ap-southeast-1:370888776060:certificate/29a917de-3402-46fb-8e0b-c164a26277d4"
+    Description: "ARN for my domain name"
+    Type: "String"
 
 Resources:
 
@@ -53,6 +59,52 @@ Resources:
         InstanceProtocol: "HTTP"
         LoadBalancerPort: '80'
         Protocol: "HTTP"
+      - LoadBalancerPort: '443'
+        Protocol: "HTTPS"
+        InstancePort: '80'
+        InstanceProtocol: "HTTP"
+        SSLCertificateId: !Ref "Domain1CertARN"
+        PolicyNames:
+        - "MyOwnSSLNegotiationPolicy"
+      # List aws elb describe-load-balancer-policies
+      Policies:
+      - PolicyName: "MyOwnSSLNegotiationPolicy"
+        PolicyType: "SSLNegotiationPolicyType"
+        Attributes:
+        - Name: "Server-Defined-Cipher-Order"
+          Value: 'true'
+        - Name: "Protocol-TLSv1"
+          Value: 'false'
+        - Name: "Protocol-TLSv1.1"
+          Value: 'false'
+        - Name: "Protocol-TLSv1.2"
+          Value: 'true'
+        - Name: "Protocol-SSLv3"
+          Value: 'false'
+        - Name: "ECDHE-ECDSA-AES128-GCM-SHA256"
+          Value: 'true'
+        - Name: "ECDHE-ECDSA-AES128-GCM-SHA256"
+          Value: 'true'
+        - Name: "ECDHE-ECDSA-AES128-SHA256"
+          Value: 'true'
+        - Name: "ECDHE-RSA-AES128-SHA256"
+          Value: 'true'
+        - Name: "ECDHE-ECDSA-AES256-GCM-SHA384"
+          Value: 'true'
+        - Name: "ECDHE-RSA-AES256-GCM-SHA384"
+          Value: 'true'
+        - Name: "ECDHE-ECDSA-AES256-SHA384"
+          Value: 'true'
+        - Name: "ECDHE-RSA-AES256-SHA384"
+          Value: 'true'
+        - Name: "AES128-GCM-SHA256"
+          Value: 'true'
+        - Name: "AES128-SHA256"
+          Value: 'true'
+        - Name: "AES256-GCM-SHA384"
+          Value: 'true'
+        - Name: "AES256-SHA256"
+          Value: 'true'
       Scheme: "internet-facing"
       SecurityGroups:
       - Ref: "ELBSecurityGroup"

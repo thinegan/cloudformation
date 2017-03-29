@@ -35,6 +35,70 @@ Parameters:
       - "prod"
     ConstraintDescription: "Specify either 'dev' or 'prod'."
 
+
+# Mapping Supports for the following Regions
+#
+# US East (N. Virginia)     = us-east-1
+# US East (Ohio)            = us-east-2
+# US West (N. California)   = us-west-1
+# US West (Oregon)          = us-west-2
+# Asia Pacific (Tokyo)      = ap-northeast-1
+# Asia Pacific (Singapore)  = ap-southeast-1
+# Asia Pacific (Sydney)     = ap-southeast-2
+# EU (Frankfurt)            = eu-central-1
+# EU (Ireland)              = eu-west-1
+# EU (London)               = eu-west-2
+#
+# AMI Instance - Amazon Linux AMI 2016.09.1 (HVM), SSD Volume Type - ami-dc9339bf (Free tier eligible)
+#
+# AStorage - The storage class to which you want the object to transition.
+#
+# For any additional region, you can add by yourself below.
+
+Mappings:
+  RegionMap:
+    us-east-1:
+      AMI: "ami-0b33d91d"
+      AStorage: "GLACIER"
+      CertARN: "arn:aws:acm:us-east-1:370888776060:certificate/4696461e-df6b-4000-963b-68c1628f0bac"
+    us-east-2:
+      AMI: "ami-c55673a0"
+      AStorage: "GLACIER"
+      CertARN: "arn:aws:acm:us-east-1:370888776060:certificate/4696461e-df6b-4000-963b-68c1628f0bac"
+    us-west-1:
+      AMI: "ami-165a0876"
+      AStorage: "GLACIER"
+      CertARN: "arn:aws:acm:us-east-1:370888776060:certificate/4696461e-df6b-4000-963b-68c1628f0bac"
+    us-west-2:
+      AMI: "ami-f173cc91"
+      AStorage: "GLACIER"
+      CertARN: "arn:aws:acm:us-east-1:370888776060:certificate/4696461e-df6b-4000-963b-68c1628f0bac"
+    ap-northeast-1:
+      AMI: "ami-56d4ad31"
+      AStorage: "GLACIER"
+      CertARN: "arn:aws:acm:us-east-1:370888776060:certificate/4696461e-df6b-4000-963b-68c1628f0bac"
+    ap-southeast-1:
+      AMI: "ami-dc9339bf"
+      AStorage: "STANDARD_IA"
+      CertARN: "arn:aws:acm:ap-southeast-1:370888776060:certificate/29a917de-3402-46fb-8e0b-c164a26277d4"
+    ap-southeast-2:
+      AMI: "ami-1c47407f"
+      AStorage: "GLACIER"
+      CertARN: "arn:aws:acm:us-east-1:370888776060:certificate/4696461e-df6b-4000-963b-68c1628f0bac"
+    eu-central-1:
+      AMI: "ami-af0fc0c0"
+      AStorage: "GLACIER"
+      CertARN: "arn:aws:acm:us-east-1:370888776060:certificate/4696461e-df6b-4000-963b-68c1628f0bac"
+    eu-west-1:
+      AMI: "ami-70edb016"
+      AStorage: "GLACIER"
+      CertARN: "arn:aws:acm:us-east-1:370888776060:certificate/4696461e-df6b-4000-963b-68c1628f0bac"
+    eu-west-2:
+      AMI: "ami-f1949e95"
+      AStorage: "GLACIER"
+      CertARN: "arn:aws:acm:us-east-1:370888776060:certificate/4696461e-df6b-4000-963b-68c1628f0bac"
+
+
 Conditions: 
   UseProdEnv: !Equals [ !Ref "ServerEnvironment", "prod" ]
 
@@ -51,6 +115,8 @@ Resources:
     Properties:
       TemplateURL: "https://s3-ap-southeast-1.amazonaws.com/cf-templates-19sg5y0d6d084-ap-southeast-1/nested-s3.yml"
       TimeoutInMinutes: '5'
+      Parameters:
+        RegionAStorage: !FindInMap ["RegionMap", !Ref "AWS::Region", "AStorage"]
 
   MyVPC:
     Type: "AWS::CloudFormation::Stack"
@@ -96,12 +162,13 @@ Resources:
       TimeoutInMinutes: '5'
       Parameters:
         ServerEnvParameter: !Ref "ServerEnvironment"
+        RegionAMI: !FindInMap ["RegionMap", !Ref "AWS::Region", "AMI"]
         AppServerSGId : !GetAtt "SecurityGroup.Outputs.APPSecurityGroup"
         APPELBName: !GetAtt "MyAPPELB.Outputs.APPLoadBalancer"
         IamInstanceProfile: !GetAtt "MyRoleAccess.Outputs.S3CWAccessInstanceProfile"
         PublicSubnetsParameter: !GetAtt "MyVPC.Outputs.PublicSubnets"
         PrivateSubnetsParameter: !GetAtt "MyVPC.Outputs.PrivateSubnets"
-
+ 
   MyELB:
     Type: "AWS::CloudFormation::Stack"
     Properties:
@@ -130,6 +197,7 @@ Resources:
       TemplateURL: "https://s3-ap-southeast-1.amazonaws.com/cf-templates-19sg5y0d6d084-ap-southeast-1/nested-autoscaling.yml"
       TimeoutInMinutes: '5'
       Parameters:
+        RegionAMI: !FindInMap ["RegionMap", !Ref "AWS::Region", "AMI"]
         ECSHostSecurityGroup: !GetAtt "SecurityGroup.Outputs.ECSHostSecurityGroup"
         LoadBalancer: !GetAtt "MyELB.Outputs.LoadBalancer"
         IamInstanceProfile: !GetAtt "MyRoleAccess.Outputs.S3CWAccessInstanceProfile"

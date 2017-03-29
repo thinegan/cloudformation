@@ -33,7 +33,8 @@ Parameters:
     Type: "String"
     Default: "MyEC2Key"
 
-  # Timeclone.com
+  # Existing Domain Name: Timeclone.com
+  # Assuming you have already upload to AWS Certificate Manager
   Domain1CertARN:
     Default: "arn:aws:acm:ap-southeast-1:370888776060:certificate/29a917de-3402-46fb-8e0b-c164a26277d4"
     Description: "ARN for my domain name"

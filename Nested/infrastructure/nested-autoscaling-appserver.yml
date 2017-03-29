@@ -43,6 +43,10 @@ Parameters:
     Description: "A reference to the IamInstanceProfile"
     Type: "String"
 
+  RegionAMI:
+    Description: "A reference to the Region AMI"
+    Type: "String"
+
   ServerEnvParameter:
     Description: "Environment name, either dev or prod."
     Type: "String"
@@ -53,29 +57,6 @@ Parameters:
       - "prod"
     ConstraintDescription: "Specify either 'dev' or 'prod'."
 
-Mappings:
-
-  RegionMap:
-    eu-west-1:
-      AMI: "ami-bff32ccc"
-    ap-southeast-1:
-      AMI: "ami-dc9339bf" # My-Default-AMI
-    ap-southeast-2:
-      AMI: "ami-48d38c2b"
-    eu-central-1:
-      AMI: "ami-bc5b48d0"
-    ap-northeast-2:
-      AMI: "ami-249b554a"
-    ap-northeast-1:
-      AMI: "ami-383c1956"
-    us-east-1:
-      AMI: "ami-0b33d91d"
-    sa-east-1:
-      AMI: "ami-6817af04"
-    us-west-1:
-      AMI: "ami-d5ea86b5"
-    us-west-2:
-      AMI: "ami-f0091d91"
 
 ####### Condition Setup #######
 Conditions: 
@@ -91,11 +72,7 @@ Resources:
       AssociatePublicIpAddress: "true"
       KeyName:
         Ref: "KeyName"
-      ImageId:
-        Fn::FindInMap:
-        - "RegionMap"
-        - Ref: "AWS::Region"
-        - "AMI"
+      ImageId: !Ref "RegionAMI"
       InstanceType:
         Ref: "InstanceType"
       IamInstanceProfile:
@@ -117,10 +94,10 @@ Resources:
           service awslogs start
           chkconfig awslogs on
 
-          mkdir -p /home/www/public_html/test1.timeclone.com
-          echo "This is App Server <br> <?php phpinfo(); ?>" > /home/www/public_html/test1.timeclone.com/index.php
-          chown -R nginx:nginx /home/www/public_html/test1.timeclone.com
-          chmod -R +x /home/www/public_html/test1.timeclone.com
+          mkdir -p /home/www/public_html/devel.timeclone.com
+          echo "This is App Server <br> <?php phpinfo(); ?>" > /home/www/public_html/devel.timeclone.com/index.php
+          chown -R nginx:nginx /home/www/public_html/devel.timeclone.com
+          chmod -R +x /home/www/public_html/devel.timeclone.com
 
           sed -ie 's/127.0.0.1:9000/9000/g' /etc/php-fpm.d/www.conf
           sed -ie 's/listen.allowed_clients/;listen.allowed_clients/g' /etc/php-fpm.d/www.conf

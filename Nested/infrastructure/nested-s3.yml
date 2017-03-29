@@ -23,6 +23,10 @@ Parameters:
     - "BucketOwnerRead"
     - "BucketOwnerFullControl"
 
+  RegionAStorage:
+    Description: "A reference to the Region Archive Storage"
+    Type: "String"
+
 
 Resources:
 
@@ -39,7 +43,7 @@ Resources:
           ExpirationInDays: '365' # Complete Disposal/Deletion of Data after 1 year
           Transition:
             TransitionInDays: '30' # Move Data from S3 bucket to Infrequent Archive after 30 days.
-            StorageClass: "STANDARD_IA"
+            StorageClass: !Ref "RegionAStorage"
     DeletionPolicy: "Retain"
 
   BucketPolicy:
@@ -73,7 +77,7 @@ Resources:
           ExpirationInDays: '365' # Complete Disposal/Deletion of Data after 1 year
           Transition:
             TransitionInDays: '30' # Move Data from S3 bucket to Infrequent Archive after 30 days.
-            StorageClass: "STANDARD_IA"
+            StorageClass: !Ref "RegionAStorage"
     DeletionPolicy: "Retain"
 
   BucketPolicy:
