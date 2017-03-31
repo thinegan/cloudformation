@@ -27,9 +27,15 @@ Parameters:
     Description: "A reference to the Region Archive Storage"
     Type: "String"
 
+  # Existing Domain Name: Timeclone.com
+  # Assuming you have already upload to AWS Certificate Manager
+  Domain1CertARN:
+    Description: "ARN for my domain name"
+    Type: "String"
+
 
 Resources:
-
+  # Source for All data backups
   S3Backup:
     Type: "AWS::S3::Bucket"
     Properties:
@@ -46,7 +52,7 @@ Resources:
             StorageClass: !Ref "RegionAStorage"
     DeletionPolicy: "Retain"
 
-  BucketPolicy:
+  S3BackupPolicy:
     Type: "AWS::S3::BucketPolicy"
     Properties:
       Bucket: !Ref "S3Backup"
@@ -80,7 +86,7 @@ Resources:
             StorageClass: !Ref "RegionAStorage"
     DeletionPolicy: "Retain"
 
-  BucketPolicy:
+  S3LoggingPolicy:
     Type: "AWS::S3::BucketPolicy"
     Properties:
       Bucket: !Ref "S3Logging"
@@ -96,6 +102,66 @@ Resources:
                 - "*"
 
 
+  # S3 Bucket with Cloudfront Setup
+  # Serving Static content, no need for Lifecycle policy the data taken from repositories. (content can be rebuilt)
+  S3CloudFront:
+    Type: "AWS::S3::Bucket"
+    Properties:
+      AccessControl: "PublicRead"
+      WebsiteConfiguration:
+        IndexDocument: "index.html"
+        ErrorDocument: "error.html"
+    DeletionPolicy: "Retain"
+
+  S3CloudFrontPolicy:
+    Type: "AWS::S3::BucketPolicy"
+    Properties:
+      Bucket: !Ref "S3CloudFront"
+      PolicyDocument:
+        Statement:
+          -
+            Action:
+              - "s3:GetObject"
+            Effect: 'Allow'
+            Resource: !Join ["", ["arn:aws:s3:::", !Ref "S3CloudFront", "/*"]]
+            Principal:
+              AWS:
+                - "*"
+
+  MyCDN:
+    Type: "AWS::CloudFront::Distribution"
+    Properties:
+      DistributionConfig:
+        Origins:
+        - Id: "MyOrigin"
+          DomainName:
+            Fn::GetAtt:
+            - "S3CloudFront"
+            - "DomainName"
+          S3OriginConfig: {}
+        #Value of property OriginSSLProtocols must be of type List of String
+        Enabled: 'true'
+        Aliases:
+        - "cdn.timeclone.com"
+        DefaultCacheBehavior:
+          TargetOriginId: "MyOrigin"
+          ForwardedValues:
+            QueryString: 'false'
+          ViewerProtocolPolicy: "allow-all"
+        ViewerCertificate:
+          # Default Cloudfront AWS certs
+          #CloudFrontDefaultCertificate: 'true'
+          #
+          # Own Certs
+          # https://cloudonaut.io/pitfall-acm-certificate-cloudfront-cloudformation/
+          # Error : The specified SSL certificate doesn't exist, isn't valid, or doesn't include a valid certificate chain.
+          # But the ACM certificate needs to be created in us-east-1 when used together with CloudFront. 
+          # So one possible solution was to create the CloudFormation stack in us-east-1. Lesson learned! :)
+          AcmCertificateArn: !Ref "Domain1CertARN"
+          SslSupportMethod: "sni-only"
+        PriceClass: "PriceClass_All"
+
+
 Outputs:
   S3Backup:
     Description: "S3 Backup Bucket Name"
@@ -105,6 +171,8 @@ Outputs:
     Description: "S3 Logging Bucket Name"
     Value: !Ref "S3Logging"
 
-
+  S3CloudFront:
+    Description: "S3 Bucket to Cloudfront CDN"
+    Value: !Ref "S3CloudFront"
 
 

@@ -98,6 +98,8 @@ Mappings:
       AStorage: "GLACIER"
       CertARN: "arn:aws:acm:us-east-1:370888776060:certificate/4696461e-df6b-4000-963b-68c1628f0bac"
 
+# Exactly one of [AcmCertificateArn,CloudFrontDefaultCertificate,IamCertificateId] needs to be specified
+# Exactly one of [AcmCertificateArn,CloudFrontDefaultCertificate,IamCertificateId] needs to be specified
 
 Conditions: 
   UseProdEnv: !Equals [ !Ref "ServerEnvironment", "prod" ]
@@ -116,6 +118,9 @@ Resources:
       TemplateURL: "https://s3-ap-southeast-1.amazonaws.com/cf-templates-19sg5y0d6d084-ap-southeast-1/nested-s3.yml"
       TimeoutInMinutes: '5'
       Parameters:
+        # https://cloudonaut.io/pitfall-acm-certificate-cloudfront-cloudformation/
+        # ACM certificate needs to be created in us-east-1 when used together with CloudFront. 
+        Domain1CertARN: !FindInMap ["RegionMap", "us-east-1", "CertARN"]
         RegionAStorage: !FindInMap ["RegionMap", !Ref "AWS::Region", "AStorage"]
 
   MyVPC:
@@ -175,6 +180,7 @@ Resources:
       TemplateURL: "https://s3-ap-southeast-1.amazonaws.com/cf-templates-19sg5y0d6d084-ap-southeast-1/nested-elb.yml"
       TimeoutInMinutes: '5'
       Parameters:
+        Domain1CertARN: !FindInMap ["RegionMap", !Ref "AWS::Region", "CertARN"]
         ELBSecurityGroup: !GetAtt "SecurityGroup.Outputs.ELBSecurityGroup"
         PublicSubnetsParameter: !GetAtt "MyVPC.Outputs.PublicSubnets"
         S3BackupBucket: !GetAtt "MyS3Bucket.Outputs.S3Backup"
