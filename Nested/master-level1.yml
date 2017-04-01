@@ -187,11 +187,6 @@ Resources:
         MaxParameter: !FindInMap ["EnvMap", !Ref "ServerEnvironment", "AS-MAX"]
         DesParameter: !FindInMap ["EnvMap", !Ref "ServerEnvironment", "AS-DES"]
  
-       MinSize: '2'
-      MaxSize: '3'
-      DesiredCapacity: '2'
-
- 
   MyELB:
     Type: "AWS::CloudFormation::Stack"
     Properties:
