@@ -52,5 +52,13 @@ Outputs:
   ECSHostSecurityGroup: 
     Description: "A reference to the security group for ECS hosts"
     Value: !Ref "ECSHostSecurityGroup"
+    Export:
+      Name: "TST1-SecurityGroupID"
+#        Fn::Sub: "TST1-SecurityGroupID"
+#    Export:
+#      Name: "SecurityGroupID"
+#
+#    Export:
+#      Name: !Sub "${AWS::StackName}-SecurityGroupID"
 
 

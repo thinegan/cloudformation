@@ -17,21 +17,21 @@ Resources:
       Parameters:
         EnvironmentName: !Ref "AWS::StackName"
 
-  MyInstance:
-    Type: "AWS::CloudFormation::Stack"
-    Properties:
-      TemplateURL: "https://s3-ap-southeast-1.amazonaws.com/cf-templates-19sg5y0d6d084-ap-southeast-1/ec2-infra.yml"
-      TimeoutInMinutes: '5'
-      Parameters: 
-        SecurityGroup: !GetAtt "SecurityGroup.Outputs.ECSHostSecurityGroup"
-
-
-Outputs:
-  Webserver:
-    Description: "Public IP address of the new EC2 instance"
-    Value:
-      Fn::Join:
-        - ''
-        - - "http://"
-          - !GetAtt "MyInstance.Outputs.IP"
-          - "/"
+#  MyInstance:
+#    Type: "AWS::CloudFormation::Stack"
+#    Properties:
+#      TemplateURL: "https://s3-ap-southeast-1.amazonaws.com/cf-templates-19sg5y0d6d084-ap-southeast-1/ec2-infra.yml"
+#      TimeoutInMinutes: '5'
+#      Parameters: 
+#        SecurityGroup: !GetAtt "SecurityGroup.Outputs.ECSHostSecurityGroup"
+#
+#
+#Outputs:
+#  Webserver:
+#    Description: "Public IP address of the new EC2 instance"
+#    Value:
+#      Fn::Join:
+#        - ''
+#        - - "http://"
+#          - !GetAtt "MyInstance.Outputs.IP"
+#          - "/"
