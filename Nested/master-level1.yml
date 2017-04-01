@@ -224,9 +224,9 @@ Resources:
         IamInstanceProfile: !GetAtt "MyRoleAccess.Outputs.S3CWAccessInstanceProfile"
         PublicSubnetsParameter: !GetAtt "MyVPC.Outputs.PublicSubnets"
         APPELBUrl: !GetAtt "MyAPPELB.Outputs.APPLoadBalancerUrl"
-        RegionAMI: !FindInMap ["EnvMap", !Ref "ServerEnvironment", "ASMIN"]
-        RegionAMI: !FindInMap ["EnvMap", !Ref "ServerEnvironment", "ASMAX"]
-        RegionAMI: !FindInMap ["EnvMap", !Ref "ServerEnvironment", "ASDES"]
+        MinParameter: !FindInMap ["EnvMap", !Ref "ServerEnvironment", "ASMIN"]
+        MaxParameter: !FindInMap ["EnvMap", !Ref "ServerEnvironment", "ASMAX"]
+        DesParameter: !FindInMap ["EnvMap", !Ref "ServerEnvironment", "ASDES"]
 
   MyCloudWatch:
     Type: "AWS::CloudFormation::Stack"
