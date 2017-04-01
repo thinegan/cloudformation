@@ -47,6 +47,18 @@ Parameters:
     Description: "A reference to the Region AMI"
     Type: "String"
 
+  MinParameter:
+    Description: "A reference to the MinSize"
+    Type: "String"
+
+  MaxParameter:
+    Description: "A reference to the MaxSize"
+    Type: "String"
+
+  DesParameter:
+    Description: "A reference to the DesiredCapacity"
+    Type: "String"
+
   ServerEnvParameter:
     Description: "Environment name, either dev or prod."
     Type: "String"
@@ -122,10 +134,10 @@ Resources:
   # Auto Scaling Group Basic Setup
   AppScalingGroup: 
     Type: "AWS::AutoScaling::AutoScalingGroup"
-    Properties: 
-      MinSize: '2'
-      MaxSize: '3'
-      DesiredCapacity: '2'
+    Properties:
+      MinSize: !Ref "MinParameter"
+      MaxSize: !Ref "MaxParameter"
+      DesiredCapacity: !Ref "DesParameter"
       LaunchConfigurationName:
         Ref: "LaunchConfiguration"
       VPCZoneIdentifier: !If [ "UseProdEnv", !Ref "PrivateSubnetsParameter", !Ref "PublicSubnetsParameter" ]

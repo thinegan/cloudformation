@@ -32,17 +32,83 @@ Resources:
   BucketPolicy:
     Type: "AWS::S3::BucketPolicy"
     Properties:
-      Bucket: !Ref S3Bucket
+      Bucket: !Ref "S3Bucket"
       PolicyDocument:
         Statement:
-          -
-            Action:
-              - "s3:GetObject"
-            Effect: 'Allow'
-            Resource: !Join ["", ["arn:aws:s3:::", !Ref S3Bucket, "/*"]]
+          - Action: "s3:GetObject"
+            Effect: "Allow"
+            Resource: !Join ["", ["arn:aws:s3:::", !Ref "S3Bucket", "/S3CloudFront/*"]]
             Principal:
-              AWS:
-                - "*"
+              AWS: "*"
+          - Sid: "DenyUnEncryptedObjectUploads"
+            Effect: "Deny"
+            Principal:
+              AWS: "*"
+            Action: "s3:PutObject"
+            Resource: !Join ["", ["arn:aws:s3:::", !Ref "S3Bucket", "/S3Backup/*"]]
+            Condition:
+              StringNotEquals:
+                s3:x-amz-server-side-encryption: "AES256"
+          - Action: "s3:PutObject"
+            Effect: 'Allow'
+            Resource: !Join ["", ["arn:aws:s3:::", !Ref "S3Bucket", "/S3Logging/*"]]
+            Principal:
+              AWS: "*"
+
+
+
+
+
+#  S3LoggingPolicy:
+#    Type: "AWS::S3::BucketPolicy"
+#    Properties:
+#      Bucket: !Ref "S3Logging"
+#      PolicyDocument:
+#        Statement:
+#          -
+#            Action:
+#              - "s3:PutObject"
+#            Effect: 'Allow'
+#            Resource: !Join ["", ["arn:aws:s3:::", !Ref "S3Logging", "/*"]]
+#            Principal:
+#              AWS:
+#                - "*"
+#
+
+
+
+#        Statement:
+#        - Effect: Allow
+#          Action:
+#          - sns:*
+#          Resource:
+#          - Ref: mytopic
+#        - Effect: Deny
+#          Action:
+#          - sns:*
+#          NotResource:
+#          - Ref: mytopic
+
+
+#  S3BackupPolicy:
+#    Type: "AWS::S3::BucketPolicy"
+#    Properties:
+#      Bucket: !Ref "S3Bucket"
+#      PolicyDocument:
+#        Statement:
+#        - Sid: "DenyUnEncryptedObjectUploads"
+#          Effect: "Deny"
+#          Principal:
+#            AWS: "*"
+#          Action: "s3:PutObject"
+#          Resource: !Join ["", ["arn:aws:s3:::", !Ref "S3Bucket", "/S3Backup/*"]]
+#          Condition:
+#            StringNotEquals:
+#              s3:x-amz-server-side-encryption: "AES256"
+#
+
+
+
 Outputs:
   WebsiteURL:
     Value: !GetAtt S3Bucket.WebsiteURL

@@ -35,6 +35,19 @@ Parameters:
       - "prod"
     ConstraintDescription: "Specify either 'dev' or 'prod'."
 
+# Mapping Supports for the following Environment
+Mappings:
+  EnvMap:
+    dev:
+      # Auto-Scaling Setting
+      AS-MIN: '1'
+      AS-MAX: '1'
+      AS-DES: '1'
+    prod:
+      # Auto-Scaling Setting
+      AS-MIN: '2'
+      AS-MAX: '4'
+      AS-DES: '2'
 
 # Mapping Supports for the following Regions
 #
@@ -97,9 +110,6 @@ Mappings:
       AMI: "ami-f1949e95"
       AStorage: "GLACIER"
       CertARN: "arn:aws:acm:us-east-1:370888776060:certificate/4696461e-df6b-4000-963b-68c1628f0bac"
-
-# Exactly one of [AcmCertificateArn,CloudFrontDefaultCertificate,IamCertificateId] needs to be specified
-# Exactly one of [AcmCertificateArn,CloudFrontDefaultCertificate,IamCertificateId] needs to be specified
 
 Conditions: 
   UseProdEnv: !Equals [ !Ref "ServerEnvironment", "prod" ]
@@ -173,6 +183,14 @@ Resources:
         IamInstanceProfile: !GetAtt "MyRoleAccess.Outputs.S3CWAccessInstanceProfile"
         PublicSubnetsParameter: !GetAtt "MyVPC.Outputs.PublicSubnets"
         PrivateSubnetsParameter: !GetAtt "MyVPC.Outputs.PrivateSubnets"
+        MinParameter: !FindInMap ["EnvMap", !Ref "ServerEnvironment", "AS-MIN"]
+        MaxParameter: !FindInMap ["EnvMap", !Ref "ServerEnvironment", "AS-MAX"]
+        DesParameter: !FindInMap ["EnvMap", !Ref "ServerEnvironment", "AS-DES"]
+ 
+       MinSize: '2'
+      MaxSize: '3'
+      DesiredCapacity: '2'
+
  
   MyELB:
     Type: "AWS::CloudFormation::Stack"
@@ -209,6 +227,9 @@ Resources:
         IamInstanceProfile: !GetAtt "MyRoleAccess.Outputs.S3CWAccessInstanceProfile"
         PublicSubnetsParameter: !GetAtt "MyVPC.Outputs.PublicSubnets"
         APPELBUrl: !GetAtt "MyAPPELB.Outputs.APPLoadBalancerUrl"
+        RegionAMI: !FindInMap ["EnvMap", !Ref "ServerEnvironment", "AS-MIN"]
+        RegionAMI: !FindInMap ["EnvMap", !Ref "ServerEnvironment", "AS-MAX"]
+        RegionAMI: !FindInMap ["EnvMap", !Ref "ServerEnvironment", "AS-DES"]
 
   MyCloudWatch:
     Type: "AWS::CloudFormation::Stack"

@@ -48,6 +48,18 @@ Parameters:
     Description: "A reference to the Region AMI"
     Type: "String"
 
+  MinParameter:
+    Description: "A reference to the MinSize"
+    Type: "String"
+
+  MaxParameter:
+    Description: "A reference to the MaxSize"
+    Type: "String"
+
+  DesParameter:
+    Description: "A reference to the DesiredCapacity"
+    Type: "String"
+
 
 Resources:
 
@@ -219,9 +231,9 @@ Resources:
   AutoScalingGroup: 
     Type: "AWS::AutoScaling::AutoScalingGroup"
     Properties: 
-      MinSize: '2'
-      MaxSize: '3'
-      DesiredCapacity: '2'
+      MinSize: !Ref "MinParameter"
+      MaxSize: !Ref "MaxParameter"
+      DesiredCapacity: !Ref "DesParameter"
       LaunchConfigurationName:
         Ref: "LaunchConfiguration"
       VPCZoneIdentifier:
