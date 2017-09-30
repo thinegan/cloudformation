@@ -1,0 +1,55 @@
+# Setup S3 bucket for web hosting and allow all content available to public
+# also retain this bucket from deletion
+#
+# Note, this is a basic use of Cloudformation with disregard for Security Group Access
+# You should always update Security Group Access with your own IP Address to ensure your instances security.
+#
+# How to validate template
+# aws cloudformation validate-template --template-body file:////path//cloudformation//S3//s3bucket-webhosting.yml
+#
+# How to Create/Update stack 
+# aws cloudformation create-stack --stack-name myS3 --template-body file:////path//cloudformation//S3//s3bucket-webhosting.yml
+# aws cloudformation update-stack --stack-name myS3 --template-body file:////path//cloudformation//S3//s3bucket-webhosting.yml
+#
+# How to Delete stack
+# aws cloudformation delete-stack --stack-name myS3
+#
+# Example with parameter
+# aws cloudformation create-stack  --stack-name startmyinstance  
+#    --template-body file://home/ec2-user/templates/startmyinstance.json 
+#    --parameters  ParameterKey=KeyPairName,ParameterValue=MyKey ParameterKey=InstanceType,ParameterValue=t1.micro   
+---
+AWSTemplateFormatVersion: '2010-09-09'
+
+
+Resources:
+
+  ############################################################################
+  # S3 Backup Data Encrypted Bucket
+  ############################################################################
+
+  S3Backup:
+    Type: "AWS::S3::Bucket"
+    Properties:
+      AccessControl: "Private"
+      VersioningConfiguration:
+        Status: "Enabled"
+    DeletionPolicy: "Retain"
+
+  S3BackupPolicy:
+    Type: "AWS::S3::BucketPolicy"
+    Properties:
+      Bucket: !Ref "S3Backup"
+      PolicyDocument:
+        Statement:
+        - Sid: "DenyUnEncryptedObjectUploads"
+          Effect: "Deny"
+          Principal:
+            AWS: "*"
+          Action: "s3:PutObject"
+          Resource: !Join ["", ["arn:aws:s3:::", !Ref "S3Backup", "/*"]]
+          Condition:
+            StringNotEquals:
+              s3:x-amz-server-side-encryption: "AES256"
+
+
